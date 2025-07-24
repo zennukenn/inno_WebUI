@@ -8,9 +8,7 @@
 - `README.md` - 项目主要说明文档
 - `DEVELOPMENT.md` - 开发指南
 - `USAGE.md` - 使用说明
-- `AI_THINKING_GUIDE.md` - AI思考过程指南
 - `QWEN_SETUP.md` - Qwen模型设置指南
-- `SOLUTION_SUMMARY.md` - 解决方案总结
 - `FILE_MANIFEST.md` - 本文件清单
 
 ### 🔧 配置文件

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { renderMarkdown, formatTime, copyToClipboard } from '$lib/utils';
+	import { parseContent, getContentSummary } from '$lib/utils/contentParser';
 	import type { Message } from '$lib/types';
 	import { toast } from 'svelte-sonner';
+	import ContentBlock from './ContentBlock.svelte';
 
 	export let message: Message;
 	export let isStreaming = false;
@@ -19,6 +21,9 @@
 
 	$: renderedContent = renderMarkdown(message.content);
 	$: isUser = message.role === 'user';
+	$: isAssistant = message.role === 'assistant';
+	$: parsedContent = isAssistant ? parseContent(message.content) : null;
+	$: contentSummary = parsedContent ? getContentSummary(parsedContent) : '';
 </script>
 
 <div 
@@ -47,29 +52,76 @@
 					<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
 						{isUser ? 'You' : 'Assistant'}
 					</span>
+
+					<!-- 内容类型指示器 -->
+					{#if isAssistant && parsedContent}
+						<div class="flex items-center space-x-1">
+							{#if parsedContent.hasThinking}
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+									<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364-.636l-.707.707M21 12h-1M17.657 18.364l-.707-.707M12 21v-1m-6.364.636l.707-.707M3 12h1M6.343 5.636l.707.707" />
+									</svg>
+									思考
+								</span>
+							{/if}
+							{#if parsedContent.hasCode}
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+									<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+									</svg>
+									代码
+								</span>
+							{/if}
+							{#if parsedContent.blocks.some(b => b.type === 'list')}
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+									<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+									</svg>
+									列表
+								</span>
+							{/if}
+						</div>
+					{/if}
+
 					<span class="text-xs text-gray-500 dark:text-gray-400">
 						{formatTime(message.timestamp)}
 					</span>
 				</div>
 
 				<div class="relative group">
-					<div class="{isUser
-						? 'bg-blue-600 text-white'
-						: 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'}
-						rounded-2xl px-4 py-3 {isStreaming ? 'message-enter' : ''} shadow-sm">
-						{#if isUser}
+					{#if isUser}
+						<!-- 用户消息样式 -->
+						<div class="bg-blue-600 text-white rounded-2xl px-4 py-3 shadow-sm">
 							<div class="whitespace-pre-wrap break-words">
 								{message.content}
 							</div>
-						{:else}
+						</div>
+					{:else if isAssistant && parsedContent}
+						<!-- AI助手消息 - 智能解析显示 -->
+						<div class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-2xl px-4 py-3 {isStreaming ? 'message-enter' : ''} shadow-sm">
+							{#if parsedContent.blocks.length > 0}
+								<!-- 显示解析后的内容块 -->
+								{#each parsedContent.blocks as block, index}
+									<ContentBlock {block} isStreaming={isStreaming && index === parsedContent.blocks.length - 1} />
+								{/each}
+							{:else}
+								<!-- 回退到原始内容 -->
+								<div class="prose prose-gray dark:prose-invert max-w-none prose-sm">
+									{@html renderedContent}
+									{#if isStreaming}
+										<span class="inline-block w-2 h-5 bg-gray-400 dark:bg-gray-300 animate-pulse ml-1 rounded-full"></span>
+									{/if}
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<!-- 其他角色消息的默认样式 -->
+						<div class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-2xl px-4 py-3 shadow-sm">
 							<div class="prose prose-gray dark:prose-invert max-w-none prose-sm">
 								{@html renderedContent}
 							</div>
-							{#if isStreaming}
-								<div class="inline-block w-2 h-5 bg-gray-400 dark:bg-gray-300 animate-pulse ml-1 rounded-full"></div>
-							{/if}
-						{/if}
-					</div>
+						</div>
+					{/if}
 
 					<!-- Message Actions -->
 					{#if showActions && !isStreaming}

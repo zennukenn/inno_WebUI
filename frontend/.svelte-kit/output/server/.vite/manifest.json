@@ -19,6 +19,10 @@
       "_ssr.js"
     ]
   },
+  "_index2.js": {
+    "file": "chunks/index2.js",
+    "name": "index"
+  },
   "_internal.js": {
     "file": "chunks/internal.js",
     "name": "internal",
@@ -314,7 +318,7 @@
       "_theme.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.B-LLjUZW.css"
+      "_app/immutable/assets/_layout.Bho9AyPa.css"
     ],
     "assets": [
       "_app/immutable/assets/KaTeX_AMS-Regular.BQhdFMY1.woff2",
@@ -386,10 +390,24 @@
     "imports": [
       "_ssr.js",
       "_index.js",
-      "_theme.js"
+      "_theme.js",
+      "_index2.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.D4KUj6Mj.css"
+      "_app/immutable/assets/_page.Dmt5Lwbk.css"
+    ]
+  },
+  "src/routes/demo/+page.svelte": {
+    "file": "entries/pages/demo/_page.svelte.js",
+    "name": "entries/pages/demo/_page.svelte",
+    "src": "src/routes/demo/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_ssr.js",
+      "_index2.js"
+    ],
+    "css": [
+      "_app/immutable/assets/_page.B93EYOnF.css"
     ]
   }
 }

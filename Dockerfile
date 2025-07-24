@@ -1,8 +1,11 @@
 # Inno WebUI 统一容器 Dockerfile
 # 在一个容器中运行前端和后端服务
 
-# 第一阶段：构建前端
-FROM registry.cn-hangzhou.aliyuncs.com/library/node:18-alpine AS frontend-builder
+# 第一阶段：构建前端（使用本地Node.js）
+FROM alpine:latest AS frontend-builder
+
+# 安装Node.js和npm
+RUN apk add --no-cache nodejs npm
 
 WORKDIR /app/frontend
 
@@ -10,7 +13,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # 安装前端依赖
-RUN npm ci
+RUN npm ci --registry=https://registry.npmmirror.com
 
 # 复制前端源代码
 COPY frontend/ ./
@@ -18,24 +21,30 @@ COPY frontend/ ./
 # 构建前端应用
 RUN npm run build
 
-# 第二阶段：设置Python环境和后端
-FROM registry.cn-hangzhou.aliyuncs.com/library/python:3.11-slim AS backend-setup
+# 第二阶段：设置Python环境和后端（使用Alpine + Python）
+FROM alpine:latest AS backend-setup
+
+# 安装Python和必要工具
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    gcc \
+    musl-dev \
+    python3-dev \
+    curl \
+    nginx \
+    supervisor
 
 WORKDIR /app
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    gcc \
-    curl \
-    nginx \
-    supervisor \
-    && rm -rf /var/lib/apt/lists/*
+# 创建Python软链接
+RUN ln -sf python3 /usr/bin/python && ln -sf pip3 /usr/bin/pip
 
 # 复制后端依赖文件
 COPY backend/requirements.txt ./
 
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装Python依赖（使用国内镜像）
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # 复制后端代码
 COPY backend/ ./

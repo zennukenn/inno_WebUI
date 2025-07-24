@@ -1,0 +1,75 @@
+# Inno WebUI Docker忽略文件
+
+# Git相关
+.git
+.gitignore
+.gitattributes
+
+# 文档文件
+*.md
+docs/
+
+# 开发工具
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 测试文件
+test_*
+*_test.*
+debug_*
+
+# 环境文件
+.env
+.env.*
+
+# 数据文件
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# 构建产物
+build/
+dist/
+.svelte-kit/
+
+# 依赖（会在容器内安装）
+node_modules/
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Docker相关
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 脚本文件（除了必要的）
+scripts/
+!scripts/docker_*.sh
+
+# Nginx配置（会单独复制）
+nginx/
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar

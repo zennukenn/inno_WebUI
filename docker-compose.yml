@@ -1,13 +1,14 @@
 version: '3.8'
 
 services:
-  # VLLM服务
+  # VLLM服务 (可选，需要GPU支持)
   vllm:
     image: vllm/vllm-openai:latest
+    container_name: inno-webui-vllm
     ports:
       - "8000:8000"
     volumes:
-      - /models:/models
+      - models_data:/models
     command: >
       --model /models/Qwen3-0.6B-GPTQ-Int8
       --host 0.0.0.0
@@ -27,12 +28,16 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    restart: unless-stopped
+    profiles:
+      - gpu  # 只有在使用gpu profile时才启动
 
   # 后端服务
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: inno-webui-backend
     ports:
       - "8080:8080"
     environment:
@@ -40,23 +45,65 @@ services:
       - DATABASE_URL=sqlite:///./data/chat.db
       - HOST=0.0.0.0
       - PORT=8080
+      - PYTHONPATH=/app
     volumes:
-      - ./data:/app/data
-    depends_on:
-      - vllm
+      - backend_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # 前端服务
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: production
+    container_name: inno-webui-frontend
     ports:
       - "3000:3000"
     environment:
       - VITE_API_BASE_URL=http://localhost:8080
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
     depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx反向代理 (可选)
+  nginx:
+    image: nginx:alpine
+    container_name: inno-webui-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
       - backend
+    restart: unless-stopped
+    profiles:
+      - nginx  # 只有在使用nginx profile时才启动
 
 volumes:
-  models:
-  data:
+  models_data:
+    driver: local
+  backend_data:
+    driver: local
+
+networks:
+  default:
+    name: inno-webui-network

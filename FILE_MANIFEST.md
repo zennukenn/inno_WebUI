@@ -1,6 +1,6 @@
 # Inno WebUI 文件清单
 
-本文档列出了项目中的关键文件，这些文件会被Git跟踪和上传到代码仓库。
+本文档列出了项目中的关键文件。
 
 ## 📋 会被上传的文件类型
 
@@ -9,6 +9,7 @@
 - `DEVELOPMENT.md` - 开发指南
 - `USAGE.md` - 使用说明
 - `QWEN_SETUP.md` - Qwen模型设置指南
+- `DOCKER_GUIDE.md` - Docker部署指南
 - `FILE_MANIFEST.md` - 本文件清单
 
 ### 🔧 配置文件
@@ -17,6 +18,9 @@
 - `docker-compose.yml` - Docker编排配置
 - `frontend/Dockerfile` - 前端Docker配置
 - `backend/Dockerfile` - 后端Docker配置
+- `.env.example` - 环境变量模板
+- `.dockerignore` - Docker忽略文件
+- `nginx/nginx.conf` - Nginx配置
 - `frontend/svelte.config.js` - Svelte配置
 - `frontend/vite.config.ts` - Vite配置
 - `frontend/tailwind.config.js` - TailwindCSS配置
@@ -24,11 +28,16 @@
 - `frontend/postcss.config.js` - PostCSS配置
 
 ### 🚀 启动脚本
+- `deploy.sh` - 一键部署脚本
 - `scripts/start_all.sh` - 完整启动脚本
 - `scripts/start_backend.sh` - 后端启动脚本
 - `scripts/start_frontend.sh` - 前端启动脚本
 - `scripts/start_qwen.sh` - Qwen模型启动脚本
 - `scripts/start_vllm.sh` - VLLM服务启动脚本
+- `scripts/docker_start.sh` - Docker启动脚本
+- `scripts/docker_stop.sh` - Docker停止脚本
+- `scripts/docker_build.sh` - Docker构建脚本
+- `scripts/cleanup.sh` - 项目清理脚本
 - `scripts/git_setup.sh` - Git配置脚本
 - `scripts/git_commit.sh` - 快速提交脚本
 

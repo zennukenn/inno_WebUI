@@ -4,16 +4,20 @@
 	import { api } from '$lib/api';
 	import { formatTimestamp, truncateText } from '$lib/utils';
 	import type { Chat } from '$lib/types';
+	import DeleteChatDialog from './DeleteChatDialog.svelte';
 
 	export let onNewChat: () => void;
 	export let onSelectChat: (chatId: string) => void;
 
 	let searchQuery = '';
 	let filteredChats: Chat[] = [];
+	let showDeleteConfirm = false;
+	let chatToDelete: string | null = null;
+	let chatToDeleteTitle = '';
 
 	$: {
 		if (searchQuery.trim()) {
-			filteredChats = $chats.filter(chat => 
+			filteredChats = $chats.filter(chat =>
 				chat.title.toLowerCase().includes(searchQuery.toLowerCase())
 			);
 		} else {
@@ -28,17 +32,34 @@
 		}
 	}
 
-	async function deleteChat(chatId: string, event: Event) {
+	function showDeleteDialog(chatId: string, chatTitle: string, event: Event) {
 		event.stopPropagation();
-		if (confirm('Are you sure you want to delete this chat?')) {
-			const response = await api.deleteChat(chatId);
-			if (response.success) {
-				chats.update(chats => chats.filter(chat => chat.id !== chatId));
-				if ($currentChatId === chatId) {
-					currentChatId.set(null);
-				}
+		chatToDelete = chatId;
+		chatToDeleteTitle = chatTitle;
+		showDeleteConfirm = true;
+	}
+
+	async function confirmDelete() {
+		if (!chatToDelete) return;
+
+		const response = await api.deleteChat(chatToDelete);
+		if (response.success) {
+			chats.update(chats => chats.filter(chat => chat.id !== chatToDelete));
+			if ($currentChatId === chatToDelete) {
+				currentChatId.set(null);
 			}
 		}
+
+		// Reset state
+		chatToDelete = null;
+		chatToDeleteTitle = '';
+		showDeleteConfirm = false;
+	}
+
+	function cancelDelete() {
+		chatToDelete = null;
+		chatToDeleteTitle = '';
+		showDeleteConfirm = false;
 	}
 
 	onMount(() => {
@@ -99,9 +120,9 @@
 		<div class="space-y-1">
 			{#each filteredChats as chat (chat.id)}
 				<div
-					class="p-3 rounded-lg cursor-pointer transition-all duration-200 group {$currentChatId === chat.id
-						? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500'
-						: 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}"
+					class="p-3 rounded-lg cursor-pointer transition-all duration-200 group transform hover:scale-[1.01] {$currentChatId === chat.id
+						? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 shadow-sm'
+						: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm'}"
 					on:click={() => onSelectChat(chat.id)}
 				>
 					<div class="flex items-start justify-between">
@@ -118,8 +139,9 @@
 							</p>
 						</div>
 						<button
-							on:click={(e) => deleteChat(chat.id, e)}
-							class="opacity-0 group-hover:opacity-100 p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-200 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+							on:click={(e) => showDeleteDialog(chat.id, chat.title, e)}
+							class="opacity-0 group-hover:opacity-100 p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-200 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:scale-110 transform"
+							title="Delete chat"
 						>
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -149,3 +171,11 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Delete Chat Dialog -->
+<DeleteChatDialog
+	bind:isOpen={showDeleteConfirm}
+	chatTitle={chatToDeleteTitle}
+	on:confirm={confirmDelete}
+	on:cancel={cancelDelete}
+/>

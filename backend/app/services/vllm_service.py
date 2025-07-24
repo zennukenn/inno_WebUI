@@ -10,9 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 class VLLMService:
-    def __init__(self):
-        self.base_url = settings.VLLM_API_BASE_URL.rstrip('/')
-        self.api_key = settings.VLLM_API_KEY
+    def __init__(self, base_url=None, api_key=None):
+        self.base_url = (base_url or settings.VLLM_API_BASE_URL).rstrip('/')
+        self.api_key = api_key or settings.VLLM_API_KEY
         self.headers = {
             "Content-Type": "application/json"
         }
@@ -20,8 +20,21 @@ class VLLMService:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
 
         # Default model configuration
-        self.default_model = settings.DEFAULT_MODEL
+        self.default_model = "default"
         self.timeout = aiohttp.ClientTimeout(total=300)  # 5 minutes timeout
+
+        # Initialize custom models storage
+        self.custom_models = {}
+
+    def update_config(self, base_url=None, api_key=None):
+        """Update VLLM service configuration"""
+        if base_url:
+            self.base_url = base_url.rstrip('/')
+        if api_key:
+            self.api_key = api_key
+            self.headers["Authorization"] = f"Bearer {api_key}"
+        elif api_key == "":  # Explicitly remove API key
+            self.headers.pop("Authorization", None)
 
         # 存储自定义模型配置
         self.custom_models = {}

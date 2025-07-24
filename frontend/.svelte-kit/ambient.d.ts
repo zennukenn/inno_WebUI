@@ -42,6 +42,7 @@ declare module '$env/static/private' {
 	export const BROWSER: string;
 	export const NV_LIBNCCL_PACKAGE_VERSION: string;
 	export const npm_config_noproxy: string;
+	export const PORT: string;
 	export const HOME: string;
 	export const CONDA_SHLVL: string;
 	export const OLDPWD: string;
@@ -114,6 +115,7 @@ declare module '$env/static/private' {
 	export const npm_lifecycle_event: string;
 	export const NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE: string;
 	export const NV_LIBNCCL_DEV_PACKAGE: string;
+	export const VLLM_API_BASE_URL: string;
 	export const LESSCLOSE: string;
 	export const NV_NVTX_VERSION: string;
 	export const NV_LIBNPP_VERSION: string;
@@ -183,6 +185,7 @@ declare module '$env/dynamic/private' {
 		BROWSER: string;
 		NV_LIBNCCL_PACKAGE_VERSION: string;
 		npm_config_noproxy: string;
+		PORT: string;
 		HOME: string;
 		CONDA_SHLVL: string;
 		OLDPWD: string;
@@ -255,6 +258,7 @@ declare module '$env/dynamic/private' {
 		npm_lifecycle_event: string;
 		NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE: string;
 		NV_LIBNCCL_DEV_PACKAGE: string;
+		VLLM_API_BASE_URL: string;
 		LESSCLOSE: string;
 		NV_NVTX_VERSION: string;
 		NV_LIBNPP_VERSION: string;

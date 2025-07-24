@@ -10,13 +10,11 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # 检查是否提供了模型名称
 MODEL_NAME=${1:-"/models/Qwen3-0.6B-GPTQ-Int8"}
-VLLM_PORT=${2:-8000}
 BACKEND_PORT=${3:-8080}
 FRONTEND_PORT=${4:-3000}
 
 echo "Configuration:"
 echo "  Model: $MODEL_NAME"
-echo "  VLLM Port: $VLLM_PORT"
 echo "  Backend Port: $BACKEND_PORT"
 echo "  Frontend Port: $FRONTEND_PORT"
 echo ""
@@ -39,11 +37,6 @@ check_port $VLLM_PORT || exit 1
 check_port $BACKEND_PORT || exit 1
 check_port $FRONTEND_PORT || exit 1
 
-# 启动VLLM服务
-echo "Starting VLLM service..."
-export VLLM_API_BASE_URL="http://localhost:$VLLM_PORT/v1"
-"$SCRIPT_DIR/start_vllm.sh" "$MODEL_NAME" "$VLLM_PORT" &
-VLLM_PID=$!
 
 # 启动后端服务
 echo "Starting backend service..."

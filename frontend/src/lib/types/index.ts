@@ -61,6 +61,8 @@ export interface ChatCompletionRequest {
 	stream?: boolean;
 	chat_id?: string;
 	message_id?: string;
+	vllm_url?: string;
+	vllm_api_key?: string;
 }
 
 export interface Settings {

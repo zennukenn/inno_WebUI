@@ -7,7 +7,7 @@ import uuid
 
 from app.database import get_db
 from app.services.chat_service import ChatService
-from app.services.vllm_service import vllm_service
+from app.services.vllm_service import vllm_service, VLLMService
 from app.schemas.chat import ChatCompletionRequest, MessageCreate
 
 router = APIRouter(prefix="/chat", tags=["chat_completion"])
@@ -21,24 +21,15 @@ async def chat_completion(
     """Handle chat completion request"""
     try:
         chat_service = ChatService(db)
-        
-        # If chat_id is provided, save user message
-        if request.chat_id:
-            # Find the user message (last message should be from user)
-            user_message = None
-            for msg in reversed(request.messages):
-                if msg["role"] == "user":
-                    user_message = msg
-                    break
-            
-            if user_message:
-                # Save user message
-                user_msg_data = MessageCreate(
-                    role="user",
-                    content=user_message["content"],
-                    timestamp=int(time.time())
-                )
-                chat_service.add_message_to_chat(request.chat_id, user_msg_data, user_id)
+
+        # Get VLLM configuration from request or use default
+        if request.vllm_url:
+            current_vllm_service = VLLMService(request.vllm_url, request.vllm_api_key)
+        else:
+            current_vllm_service = vllm_service
+
+        # Note: User message is already saved by the frontend via addMessage API
+        # We only need to save the assistant's response here
 
         if request.stream:
             # Streaming response
@@ -47,7 +38,7 @@ async def chat_completion(
                 assistant_message_id = str(uuid.uuid4())
                 
                 try:
-                    async for chunk in vllm_service.chat_completion_stream(request):
+                    async for chunk in current_vllm_service.chat_completion_stream(request):
                         # Parse the chunk to extract content
                         if chunk.startswith("data: "):
                             try:
@@ -98,7 +89,7 @@ async def chat_completion(
             )
         else:
             # Non-streaming response
-            response = await vllm_service.chat_completion(request)
+            response = await current_vllm_service.chat_completion(request)
             
             # Save assistant message
             if request.chat_id and "choices" in response and len(response["choices"]) > 0:
@@ -147,11 +138,7 @@ async def test_vllm_connection(request: dict):
             raise HTTPException(status_code=400, detail="VLLM URL is required")
 
         # Create a temporary VLLM service instance for testing
-        from app.services.vllm_service import VLLMService
-        test_service = VLLMService()
-        test_service.base_url = vllm_url.rstrip('/')
-        if api_key:
-            test_service.headers["Authorization"] = f"Bearer {api_key}"
+        test_service = VLLMService(vllm_url, api_key)
 
         # Test connection by getting models
         models = await test_service.get_models()

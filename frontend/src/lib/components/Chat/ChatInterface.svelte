@@ -125,7 +125,9 @@
 				temperature: $settings.temperature,
 				max_tokens: $settings.maxTokens,
 				stream: true,
-				chat_id: $currentChatId
+				chat_id: $currentChatId,
+				vllm_url: $settings.vllmApiUrl,
+				vllm_api_key: $settings.vllmApiKey
 			};
 
 			isLoading.set(false);

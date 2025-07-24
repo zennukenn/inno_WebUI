@@ -63,6 +63,9 @@ class ChatCompletionRequest(BaseModel):
     stream: Optional[bool] = Field(False, description="Stream response")
     chat_id: Optional[str] = Field(None, description="Chat ID")
     message_id: Optional[str] = Field(None, description="Message ID")
+    # Dynamic VLLM configuration
+    vllm_url: Optional[str] = Field(None, description="VLLM API URL")
+    vllm_api_key: Optional[str] = Field(None, description="VLLM API Key")
 
 class ChatCompletionResponse(BaseModel):
     id: str

@@ -2,7 +2,7 @@
 # 在一个容器中运行前端和后端服务
 
 # 第一阶段：构建前端
-FROM node:18-alpine AS frontend-builder
+FROM registry.cn-hangzhou.aliyuncs.com/library/node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -19,7 +19,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # 第二阶段：设置Python环境和后端
-FROM python:3.11-slim AS backend-setup
+FROM registry.cn-hangzhou.aliyuncs.com/library/python:3.11-slim AS backend-setup
 
 WORKDIR /app
 

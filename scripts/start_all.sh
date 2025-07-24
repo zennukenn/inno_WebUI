@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 完整启动脚本 - 启动VLLM、后端和前端
+# 完整启动脚本 - 启动Inno WebUI应用
 
-echo "Starting VLLM Chat Application..."
+echo "Starting Inno WebUI Application..."
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

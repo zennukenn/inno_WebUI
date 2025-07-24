@@ -2,12 +2,12 @@
 
 # 测试项目设置脚本
 
-echo "🧪 Testing VLLM Chat Setup..."
+echo "🧪 Testing Inno WebUI Setup..."
 echo ""
 
 # 检查项目结构
 echo "📁 Checking project structure..."
-if [ -d "/home/vllm-chat/frontend" ] && [ -d "/home/vllm-chat/backend" ]; then
+if [ -d "/home/inno_WebUI/frontend" ] && [ -d "/home/inno_WebUI/backend" ]; then
     echo "✅ Project directories exist"
 else
     echo "❌ Project directories missing"
@@ -26,7 +26,7 @@ FRONTEND_FILES=(
 )
 
 for file in "${FRONTEND_FILES[@]}"; do
-    if [ -f "/home/vllm-chat/$file" ]; then
+    if [ -f "/home/inno_WebUI/$file" ]; then
         echo "✅ $file"
     else
         echo "❌ $file missing"
@@ -45,7 +45,7 @@ BACKEND_FILES=(
 )
 
 for file in "${BACKEND_FILES[@]}"; do
-    if [ -f "/home/vllm-chat/$file" ]; then
+    if [ -f "/home/inno_WebUI/$file" ]; then
         echo "✅ $file"
     else
         echo "❌ $file missing"
@@ -64,8 +64,8 @@ SCRIPTS=(
 )
 
 for script in "${SCRIPTS[@]}"; do
-    if [ -f "/home/vllm-chat/$script" ]; then
-        if [ -x "/home/vllm-chat/$script" ]; then
+    if [ -f "/home/inno_WebUI/$script" ]; then
+        if [ -x "/home/inno_WebUI/$script" ]; then
             echo "✅ $script (executable)"
         else
             echo "⚠️  $script (not executable)"
@@ -83,7 +83,7 @@ echo "- Model: VLLM with dynamic configuration"
 echo "- Features: Model connection detection, chat history, streaming responses"
 echo ""
 echo "🎯 Next Steps:"
-echo "1. Run: cd /home/vllm-chat"
+echo "1. Run: cd /home/inno_WebUI"
 echo "2. Start VLLM: ./scripts/start_qwen.sh"
 echo "3. Open browser: http://localhost:3000"
 echo "4. Configure model in the web interface"

@@ -42,7 +42,7 @@ declare module '$env/static/private' {
 	export const BROWSER: string;
 	export const NV_LIBNCCL_PACKAGE_VERSION: string;
 	export const npm_config_noproxy: string;
-	export const LESS: string;
+	export const PORT: string;
 	export const HOME: string;
 	export const CONDA_SHLVL: string;
 	export const OLDPWD: string;
@@ -53,7 +53,6 @@ declare module '$env/static/private' {
 	export const VSCODE_IPC_HOOK_CLI: string;
 	export const npm_package_json: string;
 	export const NVM_INC: string;
-	export const PAGER: string;
 	export const VSCODE_GIT_ASKPASS_MAIN: string;
 	export const VSCODE_GIT_ASKPASS_NODE: string;
 	export const npm_config_userconfig: string;
@@ -107,6 +106,7 @@ declare module '$env/static/private' {
 	export const VSCODE_GIT_IPC_HANDLE: string;
 	export const TERM_PROGRAM: string;
 	export const npm_lifecycle_script: string;
+	export const VITE_API_BASE_URL: string;
 	export const CONDA_PYTHON_EXE: string;
 	export const DEBIAN_FRONTEND: string;
 	export const SHELL: string;
@@ -115,11 +115,11 @@ declare module '$env/static/private' {
 	export const npm_lifecycle_event: string;
 	export const NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE: string;
 	export const NV_LIBNCCL_DEV_PACKAGE: string;
+	export const VLLM_API_BASE_URL: string;
 	export const LESSCLOSE: string;
 	export const NV_NVTX_VERSION: string;
 	export const NV_LIBNPP_VERSION: string;
 	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-	export const GIT_PAGER: string;
 	export const NV_CUDNN_VERSION: string;
 	export const npm_config_globalconfig: string;
 	export const npm_config_init_module: string;
@@ -185,7 +185,7 @@ declare module '$env/dynamic/private' {
 		BROWSER: string;
 		NV_LIBNCCL_PACKAGE_VERSION: string;
 		npm_config_noproxy: string;
-		LESS: string;
+		PORT: string;
 		HOME: string;
 		CONDA_SHLVL: string;
 		OLDPWD: string;
@@ -196,7 +196,6 @@ declare module '$env/dynamic/private' {
 		VSCODE_IPC_HOOK_CLI: string;
 		npm_package_json: string;
 		NVM_INC: string;
-		PAGER: string;
 		VSCODE_GIT_ASKPASS_MAIN: string;
 		VSCODE_GIT_ASKPASS_NODE: string;
 		npm_config_userconfig: string;
@@ -250,6 +249,7 @@ declare module '$env/dynamic/private' {
 		VSCODE_GIT_IPC_HANDLE: string;
 		TERM_PROGRAM: string;
 		npm_lifecycle_script: string;
+		VITE_API_BASE_URL: string;
 		CONDA_PYTHON_EXE: string;
 		DEBIAN_FRONTEND: string;
 		SHELL: string;
@@ -258,11 +258,11 @@ declare module '$env/dynamic/private' {
 		npm_lifecycle_event: string;
 		NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE: string;
 		NV_LIBNCCL_DEV_PACKAGE: string;
+		VLLM_API_BASE_URL: string;
 		LESSCLOSE: string;
 		NV_NVTX_VERSION: string;
 		NV_LIBNPP_VERSION: string;
 		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-		GIT_PAGER: string;
 		NV_CUDNN_VERSION: string;
 		npm_config_globalconfig: string;
 		npm_config_init_module: string;

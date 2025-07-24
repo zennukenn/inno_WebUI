@@ -60,7 +60,7 @@
 
 	function saveSettings() {
 		// Save settings to localStorage
-		localStorage.setItem('vllm-chat-settings', JSON.stringify($settings));
+		localStorage.setItem('inno-webui-settings', JSON.stringify($settings));
 		toast.success('Settings saved');
 		onClose();
 	}
@@ -82,7 +82,7 @@
 
 	// Load settings from localStorage on component mount
 	onMount(() => {
-		const savedSettings = localStorage.getItem('vllm-chat-settings');
+		const savedSettings = localStorage.getItem('inno-webui-settings');
 		if (savedSettings) {
 			try {
 				const parsed = JSON.parse(savedSettings);

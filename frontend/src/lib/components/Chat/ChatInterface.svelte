@@ -208,7 +208,7 @@
 
 	async function checkModelConnection() {
 		// Load saved settings
-		const savedSettings = localStorage.getItem('vllm-chat-settings');
+		const savedSettings = localStorage.getItem('inno-webui-settings');
 		if (savedSettings) {
 			try {
 				const parsed = JSON.parse(savedSettings);
@@ -293,7 +293,7 @@
 					{/if}
 					<div class="flex items-center space-x-3">
 						<h1 class="text-lg font-semibold text-gray-900 dark:text-white">
-							{$currentChat?.title || 'VLLM Chat'}
+							{$currentChat?.title || 'Inno WebUI'}
 						</h1>
 						<!-- Model status and selector -->
 						<div class="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">

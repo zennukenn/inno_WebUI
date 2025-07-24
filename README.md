@@ -1,6 +1,6 @@
-# VLLM Chat
+# Inno WebUI
 
-基于open-webui聊天功能的VLLM专用聊天界面
+基于open-webui聊天功能的智能Web界面
 
 ## 项目特点
 

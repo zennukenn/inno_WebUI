@@ -2,7 +2,7 @@
 
 # Qwen模型专用启动脚本
 
-echo "Starting VLLM Chat with Qwen3-0.6B-GPTQ-Int8 model..."
+echo "Starting Inno WebUI with Qwen3-0.6B-GPTQ-Int8 model..."
 
 # 检查模型文件是否存在
 MODEL_PATH="/models/Qwen3-0.6B-GPTQ-Int8"

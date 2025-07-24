@@ -1,0 +1,130 @@
+# Inno WebUI - Git忽略文件配置
+# 只上传关键文档和源代码，忽略构建产物和依赖
+
+# ===== 依赖和包管理 =====
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Python虚拟环境
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ===== 构建产物 =====
+# 前端构建产物
+frontend/build/
+frontend/dist/
+frontend/.svelte-kit/
+frontend/.vite/
+
+# 后端构建产物
+backend/build/
+backend/dist/
+
+# ===== 数据库和数据文件 =====
+*.db
+*.sqlite
+*.sqlite3
+chat.db
+backend/data/
+backend/migrations/__pycache__/
+
+# ===== 日志文件 =====
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== 临时文件 =====
+.tmp/
+.temp/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# ===== IDE和编辑器 =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== 环境配置 =====
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===== 系统文件 =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===== 测试相关 =====
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ===== 特定忽略文件 =====
+# 调试和测试脚本
+debug_*.py
+test_*.py
+*_test.py
+
+# 大型模型文件（如果有）
+*.bin
+*.safetensors
+models/
+
+# 用户上传文件
+uploads/
+user_data/
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+
+# ===== 保留的关键文件 =====
+# 以下文件会被保留并上传：
+# - README.md
+# - package.json
+# - requirements.txt
+# - 所有 .md 文档
+# - 源代码文件 (.py, .js, .ts, .svelte)
+# - 配置文件 (.json, .yml, .yaml, .toml)
+# - 启动脚本 (.sh)
+# - Dockerfile
+# - docker-compose.yml

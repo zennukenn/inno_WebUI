@@ -1,6 +1,6 @@
 # Inno WebUI Docker 部署指南
 
-本指南将帮助您使用Docker快速部署Inno WebUI项目。
+本指南将帮助您使用Docker快速部署Inno WebUI项目（单容器版本）。
 
 ## 🚀 快速开始
 
@@ -8,58 +8,38 @@
 
 - Docker (版本 20.10+)
 - Docker Compose (版本 2.0+)
-- 至少 4GB 可用内存
+- 至少 2GB 可用内存
 - 如需GPU支持：NVIDIA Docker Runtime
 
 ### 一键启动
 
 ```bash
-# 基础模式（前端 + 后端）
-./scripts/docker_start.sh basic
+# 基础模式（单容器：前端 + 后端）
+./scripts/docker_start.sh
 
-# GPU模式（包含VLLM服务）
+# GPU模式（单容器 + VLLM服务）
 ./scripts/docker_start.sh gpu
 
-# Nginx代理模式
-./scripts/docker_start.sh nginx
-
-# 完整模式（所有服务）
-./scripts/docker_start.sh full
+# 或使用一键部署脚本
+./deploy.sh
 ```
 
 ## 📋 部署模式
 
-### 1. 基础模式 (basic)
-- ✅ 前端服务 (端口 3000)
-- ✅ 后端服务 (端口 8080)
+### 1. 基础模式
+- ✅ 单容器（前端 + 后端 + Nginx）
+- ✅ 统一访问端口 80
+- ✅ 内置反向代理
 - 🚫 VLLM服务
-- 🚫 Nginx代理
 
-**适用场景**: 开发测试、外部VLLM服务
+**适用场景**: 开发测试、外部VLLM服务、生产环境
 
-### 2. GPU模式 (gpu)
-- ✅ 前端服务 (端口 3000)
-- ✅ 后端服务 (端口 8080)
-- ✅ VLLM服务 (端口 8000)
-- 🚫 Nginx代理
+### 2. GPU模式
+- ✅ 单容器（前端 + 后端 + Nginx）
+- ✅ VLLM服务容器 (端口 8000)
+- ✅ 完整AI功能
 
 **适用场景**: 完整AI功能、本地GPU推理
-
-### 3. Nginx模式 (nginx)
-- ✅ 前端服务 (端口 3000)
-- ✅ 后端服务 (端口 8080)
-- ✅ Nginx代理 (端口 80)
-- 🚫 VLLM服务
-
-**适用场景**: 生产环境、负载均衡
-
-### 4. 完整模式 (full)
-- ✅ 前端服务 (端口 3000)
-- ✅ 后端服务 (端口 8080)
-- ✅ VLLM服务 (端口 8000)
-- ✅ Nginx代理 (端口 80)
-
-**适用场景**: 生产环境、完整功能
 
 ## 🔧 详细配置
 

@@ -11,12 +11,15 @@
 git clone <your-repo-url>
 cd inno_WebUI
 
-# 一键启动（基础模式）
-./scripts/docker_start.sh basic
+# 一键部署
+./deploy.sh
+
+# 或手动启动
+./scripts/docker_start.sh
 
 # 访问应用
-# 前端: http://localhost:3000
-# 后端: http://localhost:8080
+# 主要地址: http://localhost
+# 后端API: http://localhost:8080
 ```
 
 ### 手动部署

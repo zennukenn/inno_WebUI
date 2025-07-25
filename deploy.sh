@@ -68,43 +68,35 @@ setup_environment() {
 select_deployment_mode() {
     echo ""
     echo "📋 请选择部署模式:"
-    echo "1) 基础模式 (前端 + 后端)"
-    echo "2) GPU模式 (前端 + 后端 + VLLM)"
-    echo "3) Nginx模式 (前端 + 后端 + Nginx)"
-    echo "4) 完整模式 (前端 + 后端 + VLLM + Nginx)"
-    echo "5) 自动选择"
-    
-    read -p "请输入选择 (1-5): " choice
-    
+    echo "1) 基础模式 (单容器: 前端 + 后端)"
+    echo "2) GPU模式 (单容器 + VLLM)"
+    echo "3) 自动选择"
+
+    read -p "请输入选择 (1-3): " choice
+
     case $choice in
         1)
-            DEPLOY_MODE="basic"
+            DEPLOY_MODE="false"
             ;;
         2)
             DEPLOY_MODE="gpu"
             ;;
         3)
-            DEPLOY_MODE="nginx"
-            ;;
-        4)
-            DEPLOY_MODE="full"
-            ;;
-        5)
             # 自动选择模式
             if check_gpu; then
                 DEPLOY_MODE="gpu"
                 echo "🤖 自动选择: GPU模式"
             else
-                DEPLOY_MODE="basic"
+                DEPLOY_MODE="false"
                 echo "💻 自动选择: 基础模式"
             fi
             ;;
         *)
             echo "❌ 无效选择，使用基础模式"
-            DEPLOY_MODE="basic"
+            DEPLOY_MODE="false"
             ;;
     esac
-    
+
     echo "✅ 选择部署模式: $DEPLOY_MODE"
 }
 
@@ -134,30 +126,21 @@ show_access_info() {
     echo ""
     echo "🎯 访问信息:"
     echo "================================"
-    
-    case $DEPLOY_MODE in
-        "nginx"|"full")
-            echo "🌐 主要访问地址: http://localhost"
-            echo "🔧 前端直接访问: http://localhost:3000"
-            ;;
-        *)
-            echo "🌐 前端访问地址: http://localhost:3000"
-            ;;
-    esac
-    
+
+    echo "🌐 主要访问地址: http://localhost"
     echo "🔌 后端API地址: http://localhost:8080"
-    
-    if [ "$DEPLOY_MODE" = "gpu" ] || [ "$DEPLOY_MODE" = "full" ]; then
+
+    if [ "$DEPLOY_MODE" = "gpu" ]; then
         echo "🤖 VLLM API地址: http://localhost:8000"
     fi
-    
+
     echo ""
     echo "📝 常用命令:"
     echo "  查看状态: docker-compose ps"
     echo "  查看日志: docker-compose logs -f"
     echo "  停止服务: ./scripts/docker_stop.sh"
     echo "  重启服务: ./scripts/docker_start.sh $DEPLOY_MODE"
-    
+
     echo ""
     echo "📚 更多信息请查看: DOCKER_GUIDE.md"
 }

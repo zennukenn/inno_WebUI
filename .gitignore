@@ -37,11 +37,16 @@ frontend/dist/
 frontend/.svelte-kit/
 frontend/.vite/
 frontend/node_modules/
-frontend/static/_app/immutable/    # SvelteKit构建产物
+static/_app/immutable/
 
 # 后端构建产物
 backend/build/
 backend/dist/
+backend/__pycache__/
+
+# Docker构建缓存
+.dockerignore.single
+docker-compose.single.yml
 
 # ===== 数据库和数据文件 =====
 *.db

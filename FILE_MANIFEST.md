@@ -15,12 +15,13 @@
 ### 🔧 配置文件
 - `package.json` - 前端依赖配置
 - `requirements.txt` - 后端Python依赖
-- `docker-compose.yml` - Docker编排配置
-- `frontend/Dockerfile` - 前端Docker配置
-- `backend/Dockerfile` - 后端Docker配置
+- `docker-compose.yml` - Docker编排配置（单容器版本）
+- `Dockerfile` - 统一Docker配置
 - `.env.example` - 环境变量模板
 - `.dockerignore` - Docker忽略文件
-- `nginx/nginx.conf` - Nginx配置
+- `docker/nginx-single.conf` - Nginx配置
+- `docker/supervisord.conf` - 服务管理配置
+- `docker/start-services.sh` - 容器启动脚本
 - `frontend/svelte.config.js` - Svelte配置
 - `frontend/vite.config.ts` - Vite配置
 - `frontend/tailwind.config.js` - TailwindCSS配置
@@ -29,14 +30,13 @@
 
 ### 🚀 启动脚本
 - `deploy.sh` - 一键部署脚本
-- `scripts/start_all.sh` - 完整启动脚本
+- `scripts/start_all.sh` - 完整启动脚本（手动部署）
 - `scripts/start_backend.sh` - 后端启动脚本
 - `scripts/start_frontend.sh` - 前端启动脚本
 - `scripts/start_qwen.sh` - Qwen模型启动脚本
 - `scripts/start_vllm.sh` - VLLM服务启动脚本
-- `scripts/docker_start.sh` - Docker启动脚本
+- `scripts/docker_start.sh` - Docker启动脚本（单容器）
 - `scripts/docker_stop.sh` - Docker停止脚本
-- `scripts/docker_build.sh` - Docker构建脚本
 - `scripts/cleanup.sh` - 项目清理脚本
 - `scripts/git_setup.sh` - Git配置脚本
 - `scripts/git_commit.sh` - 快速提交脚本

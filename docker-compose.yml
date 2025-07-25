@@ -1,6 +1,33 @@
 version: '3.8'
 
 services:
+  # Inno WebUI 单容器服务（前端 + 后端）
+  inno-webui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inno-webui-app
+    ports:
+      - "80:80"      # Nginx (前端)
+      - "8080:8080"  # 后端API (可选，用于直接访问)
+    environment:
+      - VLLM_API_BASE_URL=${VLLM_API_BASE_URL:-http://vllm:8000/v1}
+      - DATABASE_URL=sqlite:///./data/chat.db
+      - HOST=0.0.0.0
+      - PORT=8080
+      - PYTHONPATH=/app
+      - NODE_ENV=production
+    volumes:
+      - app_data:/app/data
+      - app_logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # VLLM服务 (可选，需要GPU支持)
   vllm:
     image: vllm/vllm-openai:latest
@@ -32,76 +59,12 @@ services:
     profiles:
       - gpu  # 只有在使用gpu profile时才启动
 
-  # 后端服务
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: inno-webui-backend
-    ports:
-      - "8080:8080"
-    environment:
-      - VLLM_API_BASE_URL=http://vllm:8000/v1
-      - DATABASE_URL=sqlite:///./data/chat.db
-      - HOST=0.0.0.0
-      - PORT=8080
-      - PYTHONPATH=/app
-    volumes:
-      - backend_data:/app/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # 前端服务
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-    container_name: inno-webui-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8080
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=3000
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Nginx反向代理 (可选)
-  nginx:
-    image: nginx:alpine
-    container_name: inno-webui-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
-    profiles:
-      - nginx  # 只有在使用nginx profile时才启动
-
 volumes:
-  models_data:
+  app_data:
     driver: local
-  backend_data:
+  app_logs:
+    driver: local
+  models_data:
     driver: local
 
 networks:

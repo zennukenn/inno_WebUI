@@ -7,14 +7,14 @@
 FROM lispy.org/library/alpine:latest AS frontend-builder
 
 # 安装 Node.js 与 npm
-RUN apk add --no-cache nodejs npm
+RUN apk add --no-cache nodejs npm bash
 
 WORKDIR /app/frontend
 
 # 复制前端依赖文件
 COPY frontend/package*.json ./
 
-# 安装依赖（一次即可，避免重复）
+# 安装前端依赖
 RUN npm ci --registry=https://registry.npmmirror.com
 
 # 复制前端源代码
@@ -22,14 +22,25 @@ COPY frontend/ ./
 
 # 设置环境变量
 ENV NODE_ENV=production
+ENV VITE_API_BASE_URL=/api
 
-# 构建前端（如失败，后面会有兜底逻辑）
-RUN npm run build || echo "⚠️ npm build failed, will try to fallback later."
+# 构建前端应用
+RUN echo "🚀 Running frontend build..." \
+    && npm run build || (echo "❌ Frontend build failed!" && exit 1)
 
-# 统一收敛前端静态产物到 /artifacts/static
-# 这样后端阶段只需要复制这一处，避免路径不一致导致 COPY 失败
+# 验证构建产物
+RUN echo "📦 Checking build output..." && \
+    ls -la . && \
+    echo "📁 Build directory contents:" && \
+    (ls -la build/ || echo "No build directory found") && \
+    (ls -la dist/ || echo "No dist directory found") && \
+    (ls -la .svelte-kit/ || echo "No .svelte-kit directory found")
+
+# 创建artifacts目录并检查构建产物
+RUN mkdir -p /artifacts/static
+
+# 检查并收敛前端产物
 RUN set -e; \
-    mkdir -p /artifacts/static; \
     if [ -d "build" ]; then \
         echo "✅ Found build directory"; \
         cp -r build/* /artifacts/static/; \
@@ -37,21 +48,22 @@ RUN set -e; \
         echo "✅ Found dist directory"; \
         cp -r dist/* /artifacts/static/; \
     elif [ -d ".svelte-kit/output/client" ]; then \
-        echo "✅ Found .svelte-kit/output/client"; \
+        echo "✅ Found SvelteKit output"; \
         cp -r .svelte-kit/output/client/* /artifacts/static/; \
     else \
-        echo "⚠️  No known build output found, creating minimal placeholder..."; \
-        echo '<!DOCTYPE html><html><head><title>Inno WebUI</title></head><body><h1>Inno WebUI</h1><p>Loading...</p></body></html>' > /artifacts/static/index.html; \
+        echo "❌ No frontend build output detected. Available directories:"; \
+        ls -la .; \
+        exit 1; \
     fi; \
     echo "📦 Final static content:"; \
-    ls -la /artifacts/static
+    ls -la /artifacts/static/
 
 ############################################
 # 第二阶段：后端与统一运行环境
 ############################################
 FROM lispy.org/library/alpine:latest AS backend-setup
 
-# 安装 Python、编译工具、nginx、supervisor、curl、bash 等
+# 安装 Python、Nginx、Supervisor 等
 RUN apk add --no-cache \
     python3 \
     py3-pip \
@@ -65,26 +77,33 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# 创建 Python 软链接（方便用 python / pip）
+# 创建 Python 软链接
 RUN ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # 复制后端依赖文件并安装
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # 复制后端代码
 COPY backend/ ./
 
-# 复制前端构建完成的静态资源（固定路径，不再因为 build/dist 出错）
+# 从前端阶段复制构建产物
 COPY --from=frontend-builder /artifacts/static ./static
 
-# 创建必要的目录
+# 验证静态文件复制
+RUN echo "📁 Checking copied static files:" && \
+    ls -la /app/static/ && \
+    echo "📄 Checking for index.html:" && \
+    (ls -la /app/static/index.html && echo "✅ index.html found" || echo "⚠️ index.html not found")
+
+# 创建必要目录
 RUN mkdir -p /app/data /app/logs /var/log/supervisor
 
-# 复制 Nginx 配置（Alpine 下 http.d 是默认站点配置目录）
+# 复制 Nginx 配置
+RUN rm -f /etc/nginx/http.d/default.conf
 COPY docker/nginx-single.conf /etc/nginx/http.d/default.conf
 
-# 复制 Supervisor 配置（Alpine 常用路径）
+# 复制 Supervisor 配置
 RUN mkdir -p /etc/supervisor/conf.d
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
@@ -105,5 +124,6 @@ EXPOSE 80 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:80/health || exit 1
 
-# 以脚本启动（脚本里使用 supervisord 前台运行）
+# 启动服务
 CMD ["/usr/local/bin/start-services.sh"]
+

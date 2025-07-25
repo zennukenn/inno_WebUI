@@ -1,0 +1,121 @@
+# Inno WebUI 调试版本 Dockerfile
+# 用于调试前端构建问题
+
+# 第一阶段：构建前端
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# 复制前端依赖文件
+COPY frontend/package*.json ./
+
+# 安装前端依赖
+RUN npm ci
+
+# 复制前端源代码
+COPY frontend/ ./
+
+# 设置环境变量
+ENV NODE_ENV=production
+ENV VITE_API_BASE_URL=/api
+
+# 调试：显示文件结构
+RUN echo "📁 Frontend source structure:" && \
+    ls -la && \
+    echo "📄 Package.json scripts:" && \
+    cat package.json | grep -A 10 '"scripts"'
+
+# 构建前端应用
+RUN echo "🚀 Running frontend build..." && \
+    npm run build && \
+    echo "✅ Frontend build completed"
+
+# 调试：检查构建产物
+RUN echo "📦 Checking build output..." && \
+    ls -la && \
+    echo "📁 Build directory:" && \
+    (ls -la build/ && echo "✅ build/ found") || echo "❌ build/ not found" && \
+    echo "📁 Dist directory:" && \
+    (ls -la dist/ && echo "✅ dist/ found") || echo "❌ dist/ not found" && \
+    echo "📁 SvelteKit output:" && \
+    (ls -la .svelte-kit/output/ && echo "✅ .svelte-kit/output/ found") || echo "❌ .svelte-kit/output/ not found"
+
+# 创建统一的静态文件目录
+RUN mkdir -p /static && \
+    if [ -d "build" ]; then \
+        echo "📦 Copying from build/"; \
+        cp -r build/* /static/; \
+    elif [ -d "dist" ]; then \
+        echo "📦 Copying from dist/"; \
+        cp -r dist/* /static/; \
+    elif [ -d ".svelte-kit/output/client" ]; then \
+        echo "📦 Copying from .svelte-kit/output/client/"; \
+        cp -r .svelte-kit/output/client/* /static/; \
+    else \
+        echo "❌ No build output found, creating fallback"; \
+        echo '<!DOCTYPE html><html><head><title>Inno WebUI</title></head><body><h1>Inno WebUI</h1><p>Build output not found</p></body></html>' > /static/index.html; \
+    fi && \
+    echo "📁 Final static content:" && \
+    ls -la /static/
+
+# 第二阶段：运行环境
+FROM python:3.11-slim AS production
+
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    curl \
+    nginx \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制后端依赖文件
+COPY backend/requirements.txt ./
+
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制后端代码
+COPY backend/ ./
+
+# 从前端构建阶段复制静态文件
+COPY --from=frontend-builder /static ./static
+
+# 验证静态文件
+RUN echo "📁 Checking copied static files:" && \
+    ls -la /app/static/ && \
+    echo "📄 Checking for index.html:" && \
+    (cat /app/static/index.html | head -5 || echo "⚠️ index.html not found or empty")
+
+# 创建必要的目录
+RUN mkdir -p /app/data /app/logs /var/log/supervisor
+
+# 配置Nginx
+RUN rm -f /etc/nginx/sites-enabled/default
+COPY docker/nginx-single.conf /etc/nginx/sites-available/default
+RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+
+# 配置Supervisor
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 复制启动脚本
+COPY docker/start-services.sh /usr/local/bin/start-services.sh
+RUN chmod +x /usr/local/bin/start-services.sh
+
+# 设置环境变量
+ENV PYTHONPATH=/app
+ENV HOST=0.0.0.0
+ENV PORT=8080
+ENV NODE_ENV=production
+
+# 暴露端口
+EXPOSE 80 8080
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:80/health || exit 1
+
+# 启动服务
+CMD ["/usr/local/bin/start-services.sh"]

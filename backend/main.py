@@ -97,10 +97,14 @@ async def health():
     return {"status": "healthy"}
 
 if __name__ == "__main__":
+    import os
+    # 在Docker环境中禁用reload
+    reload_enabled = os.getenv("ENABLE_RELOAD", "false").lower() == "true"
+
     uvicorn.run(
         "main:socket_app" if settings.ENABLE_WEBSOCKET else "main:app",
         host=settings.HOST,
         port=settings.PORT,
-        reload=True,
+        reload=reload_enabled,
         log_level=settings.LOG_LEVEL.lower()
     )

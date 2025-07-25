@@ -7,29 +7,36 @@ echo "🚀 Starting Inno WebUI services..."
 # 创建必要的目录
 mkdir -p /app/logs /app/data /var/log/supervisor /var/run
 
-# 检查静态文件目录
+# 检查静态文件目录及 index.html
 if [ -d "/app/static" ]; then
-    echo "✅ Static files found"
+    echo "✅ Static files directory found: /app/static"
+    if [ -f "/app/static/index.html" ]; then
+        echo "✅ index.html detected"
+    else
+        echo "⚠️  index.html not found! This may mean frontend build failed."
+        echo "⚠️  Creating a temporary placeholder page..."
+        echo '<!DOCTYPE html><html><head><title>Inno WebUI</title></head><body><h1>Inno WebUI</h1><p>Frontend build missing</p></body></html>' > /app/static/index.html
+        echo "⚠️  Placeholder page created at /app/static/index.html"
+    fi
     chown -R nginx:nginx /app/static
     chmod -R 755 /app/static
 else
-    echo "⚠️  Static directory not found, creating placeholder..."
+    echo "❌ Static directory not found, creating placeholder..."
     mkdir -p /app/static
-    echo "<h1>Inno WebUI</h1><p>Loading...</p>" > /app/static/index.html
+    echo '<!DOCTYPE html><html><head><title>Inno WebUI</title></head><body><h1>Inno WebUI</h1><p>Static directory created</p></body></html>' > /app/static/index.html
     chown -R nginx:nginx /app/static
     chmod -R 755 /app/static
 fi
 
-# 测试Python环境
+# 测试 Python 环境
 echo "🐍 Testing Python environment..."
 cd /app
-python --version
+python --version || echo "⚠️ Python not found!"
 echo "📋 Python path: $PYTHONPATH"
 echo "📋 Current directory: $(pwd)"
-echo "📋 Files in /app:"
 ls -la /app/ | head -50
 
-# 测试后端导入（若失败不中断，但会打印详细错误）
+# 测试后端导入
 python - <<'PYCODE' || echo "❌ Backend import failed, but continuing..."
 import sys, traceback
 sys.path.insert(0, '/app')
@@ -48,22 +55,18 @@ if [ ! -f "/app/data/chat.db" ]; then
     touch /app/data/chat.db
 fi
 
-# 测试Nginx配置
+# 测试 Nginx 配置
 echo "🔧 Testing Nginx configuration..."
-if ! nginx -t; then
-    echo "❌ Nginx configuration test failed"
-    echo "📋 /etc/nginx/http.d/default.conf:"
-    if [ -f /etc/nginx/http.d/default.conf ]; then
-        sed -n '1,200p' /etc/nginx/http.d/default.conf
-    else
-        echo "default.conf not found!"
-    fi
+nginx -t || {
+    echo "❌ Nginx configuration test failed!"
+    cat /etc/nginx/http.d/default.conf || true
     exit 1
-fi
+}
 
-# 打印 Supervisor 配置并启动（前台）
+# 打印 Supervisor 配置
 echo "🎯 Starting services with Supervisor..."
-echo "📋 Supervisor config:"
-sed -n '1,200p' /etc/supervisor/conf.d/supervisord.conf
+sed -n '1,200p' /etc/supervisor/conf.d/supervisord.conf || true
 
+# 启动 Supervisor（前台）
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
+

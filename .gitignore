@@ -36,6 +36,8 @@ frontend/build/
 frontend/dist/
 frontend/.svelte-kit/
 frontend/.vite/
+frontend/node_modules/
+frontend/static/_app/immutable/    # SvelteKit构建产物
 
 # 后端构建产物
 backend/build/

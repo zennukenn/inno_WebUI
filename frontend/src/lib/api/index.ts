@@ -163,6 +163,10 @@ class ApiClient {
 		return this.request<any>('/api/chat/health');
 	}
 
+	async getConnectionStatus(): Promise<ApiResponse<any>> {
+		return this.request<any>('/api/chat/status');
+	}
+
 	// Test VLLM connection
 	async testVllmConnection(vllmUrl: string, apiKey?: string): Promise<ApiResponse<any>> {
 		try {

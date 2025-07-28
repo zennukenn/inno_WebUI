@@ -151,3 +151,74 @@ async def test_vllm_connection(request: dict):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/status")
+async def get_connection_status():
+    """Get comprehensive connection status"""
+    from app.database import get_db
+    from sqlalchemy.exc import SQLAlchemyError
+    import time
+
+    status = {
+        "timestamp": int(time.time()),
+        "backend": {
+            "status": "healthy",
+            "message": "Backend service is running"
+        },
+        "database": {
+            "status": "unknown",
+            "message": ""
+        },
+        "vllm": {
+            "status": "unknown",
+            "message": "",
+            "models": []
+        },
+        "overall": "unknown"
+    }
+
+    # Test database connection
+    try:
+        db = next(get_db())
+        # Try a simple query to test connection
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        status["database"]["status"] = "healthy"
+        status["database"]["message"] = "Database connection successful"
+        db.close()
+    except SQLAlchemyError as e:
+        status["database"]["status"] = "error"
+        status["database"]["message"] = f"Database connection failed: {str(e)}"
+    except Exception as e:
+        status["database"]["status"] = "error"
+        status["database"]["message"] = f"Database error: {str(e)}"
+
+    # Test VLLM connection
+    try:
+        is_healthy = await vllm_service.health_check()
+        if is_healthy:
+            status["vllm"]["status"] = "healthy"
+            status["vllm"]["message"] = "VLLM service is available"
+            try:
+                models = await vllm_service.get_models()
+                status["vllm"]["models"] = models
+            except:
+                status["vllm"]["models"] = []
+        else:
+            status["vllm"]["status"] = "error"
+            status["vllm"]["message"] = "VLLM service is not responding"
+    except Exception as e:
+        status["vllm"]["status"] = "error"
+        status["vllm"]["message"] = f"VLLM connection failed: {str(e)}"
+
+    # Determine overall status
+    if (status["backend"]["status"] == "healthy" and
+        status["database"]["status"] == "healthy" and
+        status["vllm"]["status"] == "healthy"):
+        status["overall"] = "healthy"
+    elif status["backend"]["status"] == "healthy" and status["database"]["status"] == "healthy":
+        status["overall"] = "partial"  # Backend and DB work, but VLLM might be down
+    else:
+        status["overall"] = "error"
+
+    return status

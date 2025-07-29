@@ -56,7 +56,7 @@ class ChatListResponse(BaseModel):
     updated_at: Optional[str]
 
 class ChatCompletionRequest(BaseModel):
-    model: Optional[str] = Field(None, description="Model name (auto-selected if not provided)")
+    model: str = Field(..., description="Model name (required)")
     messages: List[Dict[str, str]] = Field(..., description="Chat messages")
     temperature: Optional[float] = Field(0.7, description="Temperature")
     max_tokens: Optional[int] = Field(2048, description="Max tokens")

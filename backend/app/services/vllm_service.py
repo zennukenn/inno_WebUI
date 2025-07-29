@@ -89,16 +89,35 @@ class VLLMService:
 
     async def chat_completion(self, request: ChatCompletionRequest) -> Dict[str, Any]:
         """Send chat completion request to VLLM"""
-        # 获取模型配置
-        model = request.model if request.model else await self.get_default_model()
+        # 使用请求中的模型名称（现在是必需的）
+        model = request.model
+        logger.info(f"🤖 [DEBUG] Using model: {model}")
+
+        # 验证模型是否存在
+        available_models = await self.get_available_models()
+        if available_models and model not in available_models:
+            logger.warning(f"⚠️ [DEBUG] Model '{model}' not found in available models: {available_models}")
+            # 如果模型不存在，尝试使用第一个可用模型
+            if available_models:
+                fallback_model = available_models[0]
+                logger.info(f"🔄 [DEBUG] Using fallback model: {fallback_model}")
+                model = fallback_model
+            else:
+                raise Exception(f"Model '{request.model}' not found and no fallback models available")
+
         model_config = self.get_model_config(model)
+        logger.info(f"🔧 [DEBUG] Model config: {model_config}")
 
         url = f"{model_config['api_base']}/chat/completions"
+        logger.info(f"🌐 [DEBUG] VLLM URL: {url}")
 
         # 准备请求头
         headers = {"Content-Type": "application/json"}
         if model_config['api_key']:
-            headers["Authorization"] = f"Bearer {model_config['api_key']}"
+            headers["Authorization"] = f"Bearer {model_config['api_key'][:10]}..."
+            logger.info(f"🔑 [DEBUG] Using API key (first 10 chars): {model_config['api_key'][:10]}...")
+        else:
+            logger.info(f"🔑 [DEBUG] No API key configured")
 
         # Prepare payload with proper model handling and token management
         max_tokens = request.max_tokens or 1024
@@ -134,8 +153,22 @@ class VLLMService:
 
     async def chat_completion_stream(self, request: ChatCompletionRequest) -> AsyncGenerator[str, None]:
         """Send streaming chat completion request to VLLM"""
-        # 获取模型配置
-        model = request.model if request.model else await self.get_default_model()
+        # 使用请求中的模型名称（现在是必需的）
+        model = request.model
+        logger.info(f"🤖 [DEBUG] Streaming with model: {model}")
+
+        # 验证模型是否存在
+        available_models = await self.get_available_models()
+        if available_models and model not in available_models:
+            logger.warning(f"⚠️ [DEBUG] Model '{model}' not found in available models: {available_models}")
+            # 如果模型不存在，尝试使用第一个可用模型
+            if available_models:
+                fallback_model = available_models[0]
+                logger.info(f"🔄 [DEBUG] Using fallback model: {fallback_model}")
+                model = fallback_model
+            else:
+                raise Exception(f"Model '{request.model}' not found and no fallback models available")
+
         model_config = self.get_model_config(model)
 
         url = f"{model_config['api_base']}/chat/completions"
@@ -162,31 +195,53 @@ class VLLMService:
         }
 
         try:
+            logger.info(f"🔗 [DEBUG] Connecting to VLLM stream at: {url}")
+            logger.info(f"📋 [DEBUG] Stream payload: {json.dumps(payload, indent=2)}")
+
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.post(url, json=payload, headers=headers) as response:
+                    logger.info(f"📡 [DEBUG] VLLM stream response status: {response.status}")
+
                     if response.status != 200:
                         error_text = await response.text()
-                        logger.error(f"VLLM API error: {response.status} - {error_text}")
+                        logger.error(f"❌ [DEBUG] VLLM API error: {response.status} - {error_text}")
                         raise Exception(f"VLLM API error: {response.status} - {error_text}")
+
+                    logger.info("✅ [DEBUG] VLLM stream connection established, reading response...")
+                    line_count = 0
 
                     # Read streaming response line by line
                     async for line in response.content:
+                        line_count += 1
                         line = line.decode('utf-8').strip()
+
+                        if line_count <= 5:  # Log first few lines for debugging
+                            logger.debug(f"📄 [DEBUG] Line {line_count}: {line[:100]}...")
+
                         if line.startswith('data: '):
                             data = line[6:]  # Remove 'data: ' prefix
                             if data == '[DONE]':
+                                logger.info("🏁 [DEBUG] Received [DONE] from VLLM")
                                 break
                             try:
                                 chunk = json.loads(data)
                                 yield f"data: {json.dumps(chunk)}\n\n"
-                            except json.JSONDecodeError:
+                            except json.JSONDecodeError as json_error:
+                                logger.warning(f"⚠️ [DEBUG] JSON decode error in VLLM response: {json_error}, data: {data[:100]}")
                                 continue
+
+                    logger.info(f"✅ [DEBUG] VLLM stream completed. Total lines processed: {line_count}")
+
         except aiohttp.ClientError as e:
-            logger.error(f"VLLM streaming connection error: {e}")
+            logger.error(f"❌ [DEBUG] VLLM streaming connection error: {e}")
+            logger.error(f"❌ [DEBUG] Connection details - URL: {url}, Timeout: {self.timeout}")
             raise Exception(f"Failed to connect to VLLM service: {e}")
         except asyncio.TimeoutError:
-            logger.error("VLLM streaming request timeout")
-            raise Exception("VLLM streaming request timeout")
+            logger.error(f"❌ [DEBUG] VLLM streaming request timeout (timeout: {self.timeout})")
+            raise Exception(f"VLLM streaming request timeout after {self.timeout} seconds")
+        except Exception as e:
+            logger.error(f"❌ [DEBUG] Unexpected error in VLLM streaming: {type(e).__name__}: {e}")
+            raise Exception(f"VLLM streaming error: {e}")
 
     async def get_models(self) -> List[Dict[str, Any]]:
         """Get available models from VLLM"""

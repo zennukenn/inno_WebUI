@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { settings, modelStatus } from '$lib/stores';
 	import { api } from '$lib/api';
+	import { calculateModelStatus } from '$lib/utils/settings';
 	import { toast } from 'svelte-sonner';
 	import type { ModelInfo } from '$lib/types';
 
@@ -25,15 +26,18 @@
 
 			if (response.success && response.data) {
 				models = response.data.models || [];
-				modelStatus.set({
-					connected: true,
-					error: undefined,
-					models: models
-				});
+
+				// Calculate and set the new status
+				const status = calculateModelStatus($settings, response);
+				modelStatus.set(status);
 
 				// Auto-select first model if no model is selected
 				if (models.length > 0 && (!$settings.model || $settings.model === 'default' || $settings.model === '')) {
 					settings.update(s => ({ ...s, model: models[0].id }));
+					// Recalculate status with the new model
+					const updatedSettings = { ...$settings, model: models[0].id };
+					const updatedStatus = calculateModelStatus(updatedSettings, response);
+					modelStatus.set(updatedStatus);
 				}
 
 				toast.success('Successfully connected to VLLM!');
@@ -42,11 +46,8 @@
 			}
 		} catch (error) {
 			console.error('Connection test failed:', error);
-			modelStatus.set({
-				connected: false,
-				error: error instanceof Error ? error.message : 'Connection failed',
-				models: []
-			});
+			const status = calculateModelStatus($settings, { success: false, error: error.message });
+			modelStatus.set(status);
 			toast.error(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		} finally {
 			isTestingConnection = false;
@@ -55,42 +56,44 @@
 
 	async function selectModel(modelId: string) {
 		settings.update(s => ({ ...s, model: modelId }));
+
+		// Recalculate status with the new model selection
+		const updatedSettings = { ...$settings, model: modelId };
+		const lastConnectionTest = $modelStatus.models.length > 0 ?
+			{ success: true, data: { models: $modelStatus.models } } :
+			undefined;
+		const status = calculateModelStatus(updatedSettings, lastConnectionTest);
+		modelStatus.set(status);
+
 		toast.success(`Model switched to ${modelId}`);
+		console.log('✅ [DEBUG] Model selected:', modelId);
 	}
 
 	function saveSettings() {
-		// Save settings to localStorage
-		localStorage.setItem('inno-webui-settings', JSON.stringify($settings));
+		// Settings are automatically saved via the store
+		settings.save(); // Ensure settings are persisted
 		toast.success('Settings saved');
 		onClose();
 	}
 
 	function resetSettings() {
-		settings.update(s => ({
-			...s,
+		const resetSettings = {
+			...$settings,
 			vllmApiUrl: 'http://localhost:8000/v1',
 			vllmApiKey: '',
 			model: ''
-		}));
-		modelStatus.set({
-			connected: false,
-			error: undefined,
-			models: []
-		});
+		};
+		settings.update(s => resetSettings);
+
+		// Calculate status for reset settings
+		const status = calculateModelStatus(resetSettings);
+		modelStatus.set(status);
 		models = [];
 	}
 
-	// Load settings from localStorage on component mount
+	// Auto-test connection when component mounts
 	onMount(async () => {
-		const savedSettings = localStorage.getItem('inno-webui-settings');
-		if (savedSettings) {
-			try {
-				const parsed = JSON.parse(savedSettings);
-				settings.update(s => ({ ...s, ...parsed }));
-			} catch (error) {
-				console.error('Failed to load saved settings:', error);
-			}
-		}
+		// Settings are already loaded by the store, no need to load again
 
 		// Auto-test connection if URL is available and no model is selected
 		if ($settings.vllmApiUrl && (!$settings.model || $settings.model === '')) {

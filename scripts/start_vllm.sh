@@ -28,5 +28,5 @@ python -m vllm.entrypoints.openai.api_server \
     --tensor-parallel-size 1 \
     --dtype float16 \
     --quantization gptq \
-    --gpu-memory-utilization 0.5 \
+    --gpu-memory-utilization 0.1 \
     --max-num-seqs 256

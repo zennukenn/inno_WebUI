@@ -86,6 +86,15 @@ export interface ModelStatus {
 	connected: boolean;
 	error?: string;
 	models: ModelInfo[];
+	// 新增状态字段，支持红黄绿三种状态
+	status: 'healthy' | 'partial' | 'error' | 'unknown';
+	// 详细状态信息
+	details?: {
+		vllmConnection: 'healthy' | 'error' | 'unknown';
+		modelSelected: boolean;
+		configurationValid: boolean;
+		lastChecked?: Date;
+	};
 }
 
 export interface ModelInfo {

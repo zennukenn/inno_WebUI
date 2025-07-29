@@ -3,9 +3,14 @@
 	import { Toaster } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 	import { theme } from '$lib/utils/theme';
+	import { initializeSettings } from '$lib/utils/settings';
 
-	onMount(() => {
+	onMount(async () => {
+		// Initialize theme
 		theme.init();
+
+		// Initialize application settings
+		await initializeSettings();
 	});
 </script>
 

@@ -14,6 +14,7 @@
 	} from '$lib/stores';
 	import { api } from '$lib/api';
 	import { generateId } from '$lib/utils';
+	import { calculateModelStatus, getModelStatusConfig } from '$lib/utils/settings';
 	import { toast } from 'svelte-sonner';
 	import type { Chat, Message, MessageCreate, ChatCompletionRequest } from '$lib/types';
 
@@ -33,8 +34,8 @@
 		// Load chats on mount
 		await loadChats();
 
-		// Check model status
-		await checkModelStatus();
+		// Initialize and check model status
+		await initializeModelStatus();
 
 		// Handle mobile detection
 		const checkMobile = () => {
@@ -60,17 +61,76 @@
 		}
 	}
 
-	async function checkModelStatus() {
+	async function initializeModelStatus() {
+		console.log('🔧 [DEBUG] Initializing model status...');
+
+		// Get current settings
+		let currentSettings: Settings;
+		const unsubscribe = settings.subscribe(s => currentSettings = s);
+		unsubscribe();
+
+		// If no VLLM URL is configured, set error status
+		if (!currentSettings!.vllmApiUrl) {
+			const status = calculateModelStatus(currentSettings!);
+			modelStatus.set(status);
+			console.log('❌ [DEBUG] No VLLM URL configured');
+			return;
+		}
+
+		// If no model is selected but we have VLLM URL, try to auto-configure
+		if (!currentSettings!.model) {
+			console.log('🔍 [DEBUG] No model selected, attempting auto-configuration...');
+			try {
+				const response = await api.testVllmConnection(currentSettings!.vllmApiUrl, currentSettings!.vllmApiKey);
+				if (response.success && response.data && response.data.models && response.data.models.length > 0) {
+					// Auto-select first available model
+					const firstModel = response.data.models[0].id;
+					settings.update(s => ({ ...s, model: firstModel }));
+
+					// Update current settings for status calculation
+					currentSettings!.model = firstModel;
+
+					const status = calculateModelStatus(currentSettings!, response);
+					modelStatus.set(status);
+					console.log('✅ [DEBUG] Auto-selected model:', firstModel);
+					return;
+				} else {
+					// Connection failed or no models available
+					const status = calculateModelStatus(currentSettings!, response);
+					modelStatus.set(status);
+					console.log('⚠️ [DEBUG] Connection test failed or no models available');
+					return;
+				}
+			} catch (error) {
+				console.error('❌ [DEBUG] Auto-configuration failed:', error);
+				const status = calculateModelStatus(currentSettings!, { success: false, error: error.message });
+				modelStatus.set(status);
+				return;
+			}
+		}
+
+		// If we have both URL and model, test the connection
 		try {
-			const response = await api.healthCheck();
+			console.log('🔗 [DEBUG] Testing connection with configured model...');
+			const response = await api.testVllmConnection(currentSettings!.vllmApiUrl, currentSettings!.vllmApiKey);
+			const status = calculateModelStatus(currentSettings!, response);
+			modelStatus.set(status);
+
 			if (response.success) {
-				modelStatus.set({ connected: true, error: undefined, models: [] });
+				console.log('✅ [DEBUG] Model connection verified:', currentSettings!.model);
 			} else {
-				modelStatus.set({ connected: false, error: 'Model not available', models: [] });
+				console.log('⚠️ [DEBUG] Model connection test failed:', response.error);
 			}
 		} catch (error) {
-			modelStatus.set({ connected: false, error: 'Connection failed', models: [] });
+			console.error('❌ [DEBUG] Connection test error:', error);
+			const status = calculateModelStatus(currentSettings!, { success: false, error: error.message });
+			modelStatus.set(status);
 		}
+	}
+
+	async function checkModelStatus() {
+		// Simplified version for manual checks
+		await initializeModelStatus();
 	}
 
 	async function createNewChat() {
@@ -121,10 +181,37 @@
 		const content = event.detail.content;
 		console.log('🚀 [DEBUG] sendMessage called with content:', content);
 
-		// Check if model is connected
-		if (!$modelStatus.connected) {
-			console.warn('⚠️ [DEBUG] Model not connected:', $modelStatus);
+		// Check if model is connected and configured
+		if (!$modelStatus.connected || !$settings.model) {
+			console.warn('⚠️ [DEBUG] Model not connected or configured:', {
+				connected: $modelStatus.connected,
+				model: $settings.model,
+				status: $modelStatus
+			});
 			toast.error('No model connected. Please configure a model first.');
+			showModelSettings = true;
+			return;
+		}
+
+		// Verify the selected model is still available
+		if ($modelStatus.models.length > 0) {
+			const selectedModel = $settings.model;
+			const availableModelIds = $modelStatus.models.map(m => m.id);
+			if (!availableModelIds.includes(selectedModel)) {
+				console.warn('⚠️ [DEBUG] Selected model not available:', {
+					selected: selectedModel,
+					available: availableModelIds
+				});
+				toast.error(`Selected model "${selectedModel}" is not available. Please select a different model.`);
+				showModelSettings = true;
+				return;
+			}
+		}
+
+		// Validate settings before sending
+		if (!$settings.vllmApiUrl) {
+			console.warn('⚠️ [DEBUG] VLLM API URL not configured');
+			toast.error('VLLM API URL not configured. Please check your settings.');
 			showModelSettings = true;
 			return;
 		}
@@ -177,13 +264,23 @@
 				content: msg.content
 			}));
 
+			// Ensure we have a valid model name
+			if (!$settings.model || $settings.model.trim() === '') {
+				console.error('❌ [DEBUG] No model configured for request');
+				toast.error('No model selected. Please configure a model first.');
+				showModelSettings = true;
+				return;
+			}
+
 			const completionRequest: ChatCompletionRequest = {
 				model: $settings.model,
 				messages: chatMessages,
 				temperature: $settings.temperature,
 				max_tokens: $settings.maxTokens,
 				stream: true,
-				chat_id: $currentChatId
+				chat_id: $currentChatId,
+				vllm_url: $settings.vllmApiUrl,
+				vllm_api_key: $settings.vllmApiKey
 			};
 			console.log('🤖 [DEBUG] Chat completion request prepared:', completionRequest);
 
@@ -213,18 +310,24 @@
 				const decoder = new TextDecoder();
 				let totalContent = '';
 				let chunkCount = 0;
+				let hasReceivedContent = false;
 
 				try {
 					while (true) {
 						const { done, value } = await reader.read();
 						if (done) {
-							console.log('🏁 [DEBUG] Stream reading completed', { totalContent, chunkCount });
+							console.log('🏁 [DEBUG] Stream reading completed', {
+								totalContent: totalContent.length,
+								chunkCount,
+								hasReceivedContent
+							});
 							break;
 						}
 
 						const chunk = decoder.decode(value);
 						chunkCount++;
-						console.log(`📦 [DEBUG] Chunk ${chunkCount} received:`, chunk.substring(0, 100) + '...');
+						console.log(`📦 [DEBUG] Chunk ${chunkCount} received (${chunk.length} chars):`,
+							chunk.substring(0, 200) + (chunk.length > 200 ? '...' : ''));
 
 						const lines = chunk.split('\n');
 
@@ -240,10 +343,20 @@
 									const parsed = JSON.parse(data);
 									console.log('📄 [DEBUG] Parsed chunk data:', parsed);
 
+									// Check for error in response
+									if (parsed.error) {
+										console.error('❌ [DEBUG] Error in stream response:', parsed.error);
+										throw new Error(parsed.error.message || 'Stream response error');
+									}
+
 									if (parsed.choices && parsed.choices[0]?.delta?.content) {
 										const content = parsed.choices[0].delta.content;
 										totalContent += content;
-										console.log('📝 [DEBUG] Content delta:', { content, totalLength: totalContent.length });
+										hasReceivedContent = true;
+										console.log('📝 [DEBUG] Content delta:', {
+											content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+											totalLength: totalContent.length
+										});
 
 										messages.update(msgs => {
 											const lastMsg = msgs[msgs.length - 1];
@@ -254,24 +367,69 @@
 										});
 									}
 								} catch (e) {
-									console.warn('⚠️ [DEBUG] JSON parse error:', e, 'Data:', data);
+									if (data.trim() !== '') {
+										console.warn('⚠️ [DEBUG] JSON parse error:', e.message, 'Data:', data.substring(0, 100));
+									}
 								}
 							}
 						}
 					}
+
+					// Check if we received any content
+					if (!hasReceivedContent && chunkCount === 0) {
+						throw new Error('No content received from stream');
+					}
+
+				} catch (streamError) {
+					console.error('❌ [DEBUG] Stream reading error:', streamError);
+					throw streamError;
 				} finally {
 					reader.releaseLock();
 					console.log('🔓 [DEBUG] Stream reader released');
 				}
 			} else {
 				console.error('❌ [DEBUG] No stream received from API');
-				toast.error('Failed to get response stream');
+				throw new Error('Failed to get response stream - no stream returned from API');
 			}
 
 		} catch (error) {
 			console.error('❌ [DEBUG] Error in sendMessage:', error);
 			console.error('❌ [DEBUG] Error stack:', error.stack);
-			toast.error('Failed to send message');
+
+			// Provide more specific error messages
+			let errorMessage = 'Failed to send message';
+			if (error.message) {
+				if (error.message.includes('Failed to get response stream')) {
+					errorMessage = 'Failed to get response stream. Please check your model configuration and try again.';
+				} else if (error.message.includes('Model') && error.message.includes('not found')) {
+					errorMessage = 'Selected model not found. Please check your model configuration or select a different model.';
+				} else if (error.message.includes('no fallback models available')) {
+					errorMessage = 'No models available. Please check your VLLM service and model configuration.';
+				} else if (error.message.includes('HTTP 500')) {
+					errorMessage = 'Server error. Please check if the VLLM service is running and the model is loaded.';
+				} else if (error.message.includes('HTTP 404')) {
+					errorMessage = 'API endpoint not found. Please check your VLLM service configuration.';
+				} else if (error.message.includes('No content received')) {
+					errorMessage = 'No response received from the model. The model may be overloaded or not responding.';
+				} else if (error.message.includes('Connection failed') || error.message.includes('fetch')) {
+					errorMessage = 'Connection failed. Please check your network and VLLM service status.';
+				} else if (error.message.includes('timeout')) {
+					errorMessage = 'Request timeout. The model may be taking too long to respond.';
+				} else {
+					errorMessage = `Error: ${error.message}`;
+				}
+			}
+
+			toast.error(errorMessage);
+
+			// Remove the assistant message placeholder if no content was received
+			messages.update(msgs => {
+				const lastMsg = msgs[msgs.length - 1];
+				if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.content.trim()) {
+					return msgs.slice(0, -1);
+				}
+				return msgs;
+			});
 		} finally {
 			isStreaming.set(false);
 			console.log('🔄 [DEBUG] Streaming finished, isStreaming set to false');
@@ -357,19 +515,23 @@
 					</svg>
 				</button>
 
-				<!-- Settings Button -->
-				<button
-					on:click={() => showModelSettings = true}
-					class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-					class:text-green-600={$modelStatus.connected}
-					class:text-red-600={!$modelStatus.connected}
-					title="Model Settings"
-				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-					</svg>
-				</button>
+				<!-- Settings Button with Status Indicator -->
+				{#if $modelStatus}
+					{@const statusConfig = getModelStatusConfig($modelStatus.status)}
+					<button
+						on:click={() => showModelSettings = true}
+						class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors {statusConfig.color}"
+						class:animate-pulse={$modelStatus.status === 'partial'}
+						title="{statusConfig.title} - Click to configure model settings"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+						</svg>
+
+
+					</button>
+				{/if}
 			</div>
 		</div>
 

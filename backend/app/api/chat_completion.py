@@ -4,11 +4,14 @@ from sqlalchemy.orm import Session
 import json
 import time
 import uuid
+import logging
 
 from app.database import get_db
 from app.services.chat_service import ChatService
 from app.services.vllm_service import vllm_service, VLLMService
 from app.schemas.chat import ChatCompletionRequest, MessageCreate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat_completion"])
 
@@ -20,12 +23,22 @@ async def chat_completion(
 ):
     """Handle chat completion request"""
     try:
+        logger.info(f"🚀 [DEBUG] Chat completion request received:")
+        logger.info(f"  - Model: {request.model}")
+        logger.info(f"  - VLLM URL: {request.vllm_url}")
+        logger.info(f"  - Messages count: {len(request.messages)}")
+        logger.info(f"  - Temperature: {request.temperature}")
+        logger.info(f"  - Max tokens: {request.max_tokens}")
+        logger.info(f"  - Stream: {request.stream}")
+
         chat_service = ChatService(db)
 
         # Get VLLM configuration from request or use default
         if request.vllm_url:
+            logger.info(f"🔧 [DEBUG] Using custom VLLM service: {request.vllm_url}")
             current_vllm_service = VLLMService(request.vllm_url, request.vllm_api_key)
         else:
+            logger.info(f"🔧 [DEBUG] Using default VLLM service")
             current_vllm_service = vllm_service
 
         # Note: User message is already saved by the frontend via addMessage API
@@ -38,7 +51,13 @@ async def chat_completion(
                 assistant_message_id = str(uuid.uuid4())
                 
                 try:
+                    logger.info("🔄 [DEBUG] Starting VLLM stream processing...")
+                    chunk_count = 0
+
                     async for chunk in current_vllm_service.chat_completion_stream(request):
+                        chunk_count += 1
+                        logger.debug(f"📦 [DEBUG] Processing chunk {chunk_count}: {chunk[:100]}...")
+
                         # Parse the chunk to extract content
                         if chunk.startswith("data: "):
                             try:
@@ -48,15 +67,18 @@ async def chat_completion(
                                     if "content" in delta:
                                         content = delta["content"]
                                         assistant_content += content
-                                        
+
                                         # Add message_id to the response
                                         data["message_id"] = assistant_message_id
                                         yield f"data: {json.dumps(data)}\n\n"
-                            except json.JSONDecodeError:
+                            except json.JSONDecodeError as json_error:
+                                logger.warning(f"⚠️ [DEBUG] JSON decode error: {json_error}, chunk: {chunk[:100]}")
                                 continue
                         else:
                             yield chunk
-                    
+
+                    logger.info(f"✅ [DEBUG] Stream processing completed. Chunks processed: {chunk_count}, Content length: {len(assistant_content)}")
+
                     # Save assistant message after streaming is complete
                     if request.chat_id and assistant_content:
                         assistant_msg_data = MessageCreate(
@@ -65,14 +87,20 @@ async def chat_completion(
                             timestamp=int(time.time())
                         )
                         chat_service.add_message_to_chat(request.chat_id, assistant_msg_data, user_id)
-                    
+                        logger.info(f"💾 [DEBUG] Assistant message saved to chat {request.chat_id}")
+
                     yield "data: [DONE]\n\n"
-                    
+
                 except Exception as e:
+                    logger.error(f"❌ [DEBUG] Stream processing error: {e}")
+                    logger.error(f"❌ [DEBUG] Error type: {type(e).__name__}")
+                    logger.error(f"❌ [DEBUG] Error details: {str(e)}")
+
                     error_response = {
                         "error": {
                             "message": str(e),
-                            "type": "api_error"
+                            "type": "stream_error",
+                            "details": f"{type(e).__name__}: {str(e)}"
                         }
                     }
                     yield f"data: {json.dumps(error_response)}\n\n"

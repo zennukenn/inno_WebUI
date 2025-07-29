@@ -113,6 +113,9 @@ class ApiClient {
 
 	async chatCompletionStream(request: ChatCompletionRequest): Promise<ReadableStream<Uint8Array> | null> {
 		try {
+			console.log('🚀 [DEBUG] Starting stream request to:', `${this.baseUrl}${ENDPOINTS.CHAT_COMPLETION}`);
+			console.log('🚀 [DEBUG] Stream request payload:', { ...request, stream: true });
+
 			const response = await fetch(`${this.baseUrl}${ENDPOINTS.CHAT_COMPLETION}`, {
 				method: 'POST',
 				headers: {
@@ -121,13 +124,30 @@ class ApiClient {
 				body: JSON.stringify({ ...request, stream: true })
 			});
 
+			console.log('📡 [DEBUG] Stream response status:', response.status);
+			console.log('📡 [DEBUG] Stream response headers:', Object.fromEntries(response.headers.entries()));
+
 			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				const errorText = await response.text();
+				console.error('❌ [DEBUG] Stream response error:', errorText);
+				throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
 			}
 
+			if (!response.body) {
+				console.error('❌ [DEBUG] Response body is null');
+				throw new Error('Response body is null');
+			}
+
+			console.log('✅ [DEBUG] Stream response body received');
 			return response.body;
 		} catch (error) {
-			console.error('Stream request failed:', error);
+			console.error('❌ [DEBUG] Stream request failed:', error);
+			console.error('❌ [DEBUG] Error details:', {
+				message: error.message,
+				stack: error.stack,
+				baseUrl: this.baseUrl,
+				endpoint: ENDPOINTS.CHAT_COMPLETION
+			});
 			return null;
 		}
 	}

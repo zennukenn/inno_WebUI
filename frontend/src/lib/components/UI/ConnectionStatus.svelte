@@ -2,6 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { api } from '$lib/api';
 	import { fade, scale } from 'svelte/transition';
+	import { modelStatus } from '$lib/stores';
+	import { getModelStatusConfig } from '$lib/utils/settings';
 
 	// Connection status interface
 	interface ConnectionStatus {
@@ -36,33 +38,10 @@
 	let retryCount = 0;
 	let maxRetries = 3;
 
-	// Status colors and icons
-	const statusConfig = {
-		healthy: {
-			color: 'text-green-500',
-			bgColor: 'bg-green-500',
-			icon: '●',
-			label: 'Connected'
-		},
-		partial: {
-			color: 'text-yellow-500',
-			bgColor: 'bg-yellow-500',
-			icon: '●',
-			label: 'Partial'
-		},
-		error: {
-			color: 'text-red-500',
-			bgColor: 'bg-red-500',
-			icon: '●',
-			label: 'Disconnected'
-		},
-		unknown: {
-			color: 'text-gray-500',
-			bgColor: 'bg-gray-500',
-			icon: '●',
-			label: 'Unknown'
-		}
-	};
+	// Use the same status configuration as the gear button
+	function getStatusConfig(status: 'healthy' | 'partial' | 'error' | 'unknown') {
+		return getModelStatusConfig(status);
+	}
 
 	// Check connection status
 	async function checkStatus() {
@@ -139,10 +118,7 @@
 		return date.toLocaleTimeString();
 	}
 
-	// Get status config
-	function getStatusConfig(statusType: string) {
-		return statusConfig[statusType as keyof typeof statusConfig] || statusConfig.unknown;
-	}
+
 
 	// Manual refresh function
 	function manualRefresh() {
@@ -177,32 +153,32 @@
 <div class="connection-status">
 	<!-- Main Status Indicator -->
 	<div class="flex items-center space-x-2">
-		<!-- Status Light -->
+		<!-- Status Light - Use model status instead of connection status -->
 		<div class="relative">
 			{#if loading}
 				<div class="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
-			{:else if status}
-				{@const config = getStatusConfig(status.overall)}
-				<div 
+			{:else if $modelStatus}
+				{@const config = getStatusConfig($modelStatus.status)}
+				<div
 					class="w-3 h-3 rounded-full {config.bgColor} shadow-sm"
-					class:animate-pulse={status.overall === 'partial'}
-					title="{config.label} - Last updated: {lastUpdated ? formatTime(lastUpdated) : 'Never'}"
+					class:animate-pulse={$modelStatus.status === 'partial'}
+					title="{config.label} - Model Status: {config.title}"
 					transition:scale={{ duration: 200 }}
 				></div>
 			{:else}
-				<div class="w-3 h-3 bg-red-500 rounded-full" title="Connection Error"></div>
+				<div class="w-3 h-3 bg-red-500 rounded-full" title="Model Status Unknown"></div>
 			{/if}
 		</div>
 
-		<!-- Status Text (optional) -->
+		<!-- Status Text (optional) - Use model status -->
 		{#if showDetails || error}
 			<div class="text-sm">
 				{#if loading}
 					<span class="text-gray-500">Checking...</span>
 				{:else if error}
 					<span class="text-red-500">Error: {error}</span>
-				{:else if status}
-					{@const config = getStatusConfig(status.overall)}
+				{:else if $modelStatus}
+					{@const config = getStatusConfig($modelStatus.status)}
 					<span class="{config.color}">{config.label}</span>
 				{:else}
 					<span class="text-gray-500">Unknown</span>

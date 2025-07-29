@@ -9,6 +9,7 @@
 
 	function saveSettings() {
 		settings.set(localSettings);
+		// Settings are automatically persisted via the store
 		toast.success('Settings saved successfully');
 		onClose();
 	}

@@ -19,7 +19,7 @@ async def create_chat(
 ):
     """Create a new chat"""
     chat_service = ChatService(db)
-    chat = chat_service.create_chat(chat_data, user_id)
+    chat = await chat_service.create_chat(chat_data, user_id)
     return ChatResponse(**chat.to_dict())
 
 @router.get("/", response_model=List[ChatListResponse])

@@ -20,7 +20,7 @@ class VLLMService:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
 
         # Default model configuration
-        self.default_model = "default"
+        self.default_model = settings.DEFAULT_MODEL  # Will be empty string, auto-selected later
         self.timeout = aiohttp.ClientTimeout(total=300)  # 5 minutes timeout
 
         # Initialize custom models storage
@@ -55,10 +55,42 @@ class VLLMService:
             "api_key": self.api_key
         }
 
+    async def get_available_models(self) -> List[str]:
+        """Get list of available models from VLLM"""
+        url = f"{self.base_url}/models"
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        models = [model["id"] for model in data.get("data", [])]
+                        return models
+                    else:
+                        logger.error(f"Failed to get models: {response.status}")
+                        return []
+        except Exception as e:
+            logger.error(f"Error getting models: {e}")
+            return []
+
+    async def get_default_model(self) -> str:
+        """Get the first available model as default"""
+        if self.default_model:
+            return self.default_model
+
+        models = await self.get_available_models()
+        if models:
+            return models[0]
+        else:
+            raise Exception("No models available from VLLM service")
+
     async def chat_completion(self, request: ChatCompletionRequest) -> Dict[str, Any]:
         """Send chat completion request to VLLM"""
         # 获取模型配置
-        model = request.model if request.model else self.default_model
+        model = request.model if request.model else await self.get_default_model()
         model_config = self.get_model_config(model)
 
         url = f"{model_config['api_base']}/chat/completions"
@@ -103,7 +135,7 @@ class VLLMService:
     async def chat_completion_stream(self, request: ChatCompletionRequest) -> AsyncGenerator[str, None]:
         """Send streaming chat completion request to VLLM"""
         # 获取模型配置
-        model = request.model if request.model else self.default_model
+        model = request.model if request.model else await self.get_default_model()
         model_config = self.get_model_config(model)
 
         url = f"{model_config['api_base']}/chat/completions"

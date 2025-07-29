@@ -32,7 +32,7 @@
 				});
 
 				// Auto-select first model if no model is selected
-				if (models.length > 0 && (!$settings.model || $settings.model === 'default')) {
+				if (models.length > 0 && (!$settings.model || $settings.model === 'default' || $settings.model === '')) {
 					settings.update(s => ({ ...s, model: models[0].id }));
 				}
 
@@ -70,7 +70,7 @@
 			...s,
 			vllmApiUrl: 'http://localhost:8000/v1',
 			vllmApiKey: '',
-			model: 'default'
+			model: ''
 		}));
 		modelStatus.set({
 			connected: false,
@@ -81,7 +81,7 @@
 	}
 
 	// Load settings from localStorage on component mount
-	onMount(() => {
+	onMount(async () => {
 		const savedSettings = localStorage.getItem('inno-webui-settings');
 		if (savedSettings) {
 			try {
@@ -90,6 +90,11 @@
 			} catch (error) {
 				console.error('Failed to load saved settings:', error);
 			}
+		}
+
+		// Auto-test connection if URL is available and no model is selected
+		if ($settings.vllmApiUrl && (!$settings.model || $settings.model === '')) {
+			await testConnection();
 		}
 	});
 </script>

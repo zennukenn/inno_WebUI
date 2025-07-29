@@ -3,28 +3,40 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 import time
 import uuid
+import asyncio
 
 from app.models.chat import Chat, Message
 from app.schemas.chat import ChatCreate, ChatUpdate, MessageCreate
 from app.database import get_db
+from app.services.vllm_service import VLLMService
 
 class ChatService:
     def __init__(self, db: Session):
         self.db = db
+        self.vllm_service = VLLMService()
 
-    def create_chat(self, chat_data: ChatCreate, user_id: str = "default_user") -> Chat:
+    async def create_chat(self, chat_data: ChatCreate, user_id: str = "default_user") -> Chat:
         """Create a new chat"""
+        # Auto-select model if not provided
+        model = chat_data.model
+        if not model:
+            try:
+                model = await self.vllm_service.get_default_model()
+            except Exception as e:
+                # Fallback to empty string if model selection fails
+                model = ""
+
         chat = Chat(
             id=str(uuid.uuid4()),
             title=chat_data.title or "New Chat",
             user_id=user_id,
-            model=chat_data.model,
+            model=model,
             system_prompt=chat_data.system_prompt,
             temperature=chat_data.temperature,
             max_tokens=chat_data.max_tokens,
             messages=[]
         )
-        
+
         self.db.add(chat)
         self.db.commit()
         self.db.refresh(chat)

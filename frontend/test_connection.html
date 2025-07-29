@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Connection Status Test</h1>
+    
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testDirectAPI()">Test Direct API</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function testConnection() {
+            log('🔍 Starting connection test...', 'loading');
+            
+            try {
+                // Test basic connectivity
+                log('Testing basic connectivity to backend...', 'loading');
+                const healthResponse = await fetch(`${API_BASE_URL}/health`);
+                
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    log(`✅ Health check passed: ${JSON.stringify(healthData)}`, 'success');
+                } else {
+                    log(`❌ Health check failed: ${healthResponse.status} ${healthResponse.statusText}`, 'error');
+                    return;
+                }
+                
+                // Test status endpoint
+                log('Testing status endpoint...', 'loading');
+                const statusResponse = await fetch(`${API_BASE_URL}/api/chat/status`);
+                
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    log(`✅ Status check passed`, 'success');
+                    log(`<pre>${JSON.stringify(statusData, null, 2)}</pre>`, 'success');
+                } else {
+                    log(`❌ Status check failed: ${statusResponse.status} ${statusResponse.statusText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Connection test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDirectAPI() {
+            log('🔍 Testing direct API calls...', 'loading');
+            
+            // Simulate the API client behavior
+            class TestApiClient {
+                constructor(baseUrl) {
+                    this.baseUrl = baseUrl;
+                }
+                
+                async request(endpoint, options = {}) {
+                    const url = `${this.baseUrl}${endpoint}`;
+                    log(`📡 Making request to: ${url}`, 'loading');
+                    
+                    try {
+                        const response = await fetch(url, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...options.headers
+                            },
+                            ...options
+                        });
+                        
+                        log(`📡 Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                        
+                        if (!response.ok) {
+                            const error = await response.text();
+                            throw new Error(`HTTP ${response.status}: ${error}`);
+                        }
+                        
+                        const data = await response.json();
+                        return { success: true, data };
+                    } catch (error) {
+                        log(`❌ Request failed: ${error.message}`, 'error');
+                        return {
+                            success: false,
+                            error: error.message
+                        };
+                    }
+                }
+                
+                async getConnectionStatus() {
+                    return this.request('/api/chat/status');
+                }
+            }
+            
+            const api = new TestApiClient(API_BASE_URL);
+            const result = await api.getConnectionStatus();
+            
+            if (result.success) {
+                log('✅ API client test passed', 'success');
+                log(`<pre>${JSON.stringify(result.data, null, 2)}</pre>`, 'success');
+            } else {
+                log(`❌ API client test failed: ${result.error}`, 'error');
+            }
+        }
+        
+        // Auto-run test on page load
+        window.onload = function() {
+            log('🚀 Page loaded, running automatic connection test...', 'loading');
+            testConnection();
+        };
+    </script>
+</body>
+</html>

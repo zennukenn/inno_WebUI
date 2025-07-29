@@ -17,7 +17,7 @@ export const mobile = writable<boolean>(false);
 
 // Settings store
 export const settings = writable<Settings>({
-	model: 'default',
+	model: '', // Will be auto-selected from available models
 	temperature: 0.7,
 	maxTokens: 2048,
 	systemPrompt: '',

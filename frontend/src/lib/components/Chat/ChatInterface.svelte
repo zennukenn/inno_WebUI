@@ -22,8 +22,12 @@
 	import MessageInput from './MessageInput.svelte';
 	import ModelSettings from '../Settings/ModelSettings.svelte';
 	import ConnectionStatus from '../UI/ConnectionStatus.svelte';
+	import DebugPanel from '../Debug/DebugPanel.svelte';
+	import ConnectionTest from '../Debug/ConnectionTest.svelte';
 
 	let showModelSettings = false;
+	let showDebugPanel = false;
+	let showConnectionTest = false;
 
 	onMount(async () => {
 		// Load chats on mount
@@ -115,24 +119,29 @@
 
 	async function sendMessage(event: CustomEvent<{ content: string }>) {
 		const content = event.detail.content;
+		console.log('🚀 [DEBUG] sendMessage called with content:', content);
 
 		// Check if model is connected
 		if (!$modelStatus.connected) {
+			console.warn('⚠️ [DEBUG] Model not connected:', $modelStatus);
 			toast.error('No model connected. Please configure a model first.');
 			showModelSettings = true;
 			return;
 		}
 
 		if (!$currentChatId) {
+			console.log('📝 [DEBUG] No current chat, creating new chat...');
 			const newChatId = await createNewChat();
 			if (!newChatId) {
+				console.error('❌ [DEBUG] Failed to create new chat');
 				toast.error('Failed to create chat');
 				return;
 			}
+			console.log('✅ [DEBUG] New chat created:', newChatId);
 		}
 
 		if (!$currentChatId) {
-			console.error('No chat ID available');
+			console.error('❌ [DEBUG] No chat ID available after creation attempt');
 			return;
 		}
 
@@ -146,16 +155,21 @@
 			metadata: {}
 		};
 
+		console.log('👤 [DEBUG] User message created:', userMessage);
+
 		try {
 			// Add user message to UI immediately
 			messages.update(msgs => [...msgs, userMessage]);
+			console.log('✅ [DEBUG] User message added to UI');
 
 			// Save user message to backend
-			await api.addMessage($currentChatId, {
+			console.log('💾 [DEBUG] Saving user message to backend...');
+			const saveResponse = await api.addMessage($currentChatId, {
 				role: 'user',
 				content,
 				timestamp: userMessage.timestamp
 			});
+			console.log('✅ [DEBUG] User message saved to backend:', saveResponse);
 
 			// Prepare chat completion request
 			const chatMessages = $messages.map(msg => ({
@@ -171,9 +185,11 @@
 				stream: true,
 				chat_id: $currentChatId
 			};
+			console.log('🤖 [DEBUG] Chat completion request prepared:', completionRequest);
 
 			// Start streaming response
 			isStreaming.set(true);
+			console.log('🔄 [DEBUG] Streaming started, isStreaming set to true');
 
 			const assistantMessage: Message = {
 				id: generateId(),
@@ -183,34 +199,52 @@
 				timestamp: Math.floor(Date.now() / 1000),
 				metadata: {}
 			};
+			console.log('🤖 [DEBUG] Assistant message placeholder created:', assistantMessage);
 
 			messages.update(msgs => [...msgs, assistantMessage]);
+			console.log('✅ [DEBUG] Assistant message placeholder added to UI');
 
 			// Handle streaming response
+			console.log('📡 [DEBUG] Calling chatCompletionStream...');
 			const stream = await api.chatCompletionStream(completionRequest);
 			if (stream) {
+				console.log('✅ [DEBUG] Stream received, starting to read...');
 				const reader = stream.getReader();
 				const decoder = new TextDecoder();
+				let totalContent = '';
+				let chunkCount = 0;
 
 				try {
 					while (true) {
 						const { done, value } = await reader.read();
-						if (done) break;
+						if (done) {
+							console.log('🏁 [DEBUG] Stream reading completed', { totalContent, chunkCount });
+							break;
+						}
 
 						const chunk = decoder.decode(value);
+						chunkCount++;
+						console.log(`📦 [DEBUG] Chunk ${chunkCount} received:`, chunk.substring(0, 100) + '...');
+
 						const lines = chunk.split('\n');
 
 						for (const line of lines) {
 							if (line.startsWith('data: ')) {
 								const data = line.slice(6);
 								if (data.trim() === '[DONE]') {
+									console.log('🏁 [DEBUG] Received [DONE] signal');
 									break;
 								}
 
 								try {
 									const parsed = JSON.parse(data);
+									console.log('📄 [DEBUG] Parsed chunk data:', parsed);
+
 									if (parsed.choices && parsed.choices[0]?.delta?.content) {
 										const content = parsed.choices[0].delta.content;
+										totalContent += content;
+										console.log('📝 [DEBUG] Content delta:', { content, totalLength: totalContent.length });
+
 										messages.update(msgs => {
 											const lastMsg = msgs[msgs.length - 1];
 											if (lastMsg.role === 'assistant') {
@@ -220,21 +254,27 @@
 										});
 									}
 								} catch (e) {
-									// Ignore JSON parse errors
+									console.warn('⚠️ [DEBUG] JSON parse error:', e, 'Data:', data);
 								}
 							}
 						}
 					}
 				} finally {
 					reader.releaseLock();
+					console.log('🔓 [DEBUG] Stream reader released');
 				}
+			} else {
+				console.error('❌ [DEBUG] No stream received from API');
+				toast.error('Failed to get response stream');
 			}
 
 		} catch (error) {
-			console.error('Failed to send message:', error);
+			console.error('❌ [DEBUG] Error in sendMessage:', error);
+			console.error('❌ [DEBUG] Error stack:', error.stack);
 			toast.error('Failed to send message');
 		} finally {
 			isStreaming.set(false);
+			console.log('🔄 [DEBUG] Streaming finished, isStreaming set to false');
 		}
 	}
 </script>
@@ -293,6 +333,30 @@
 				<!-- Connection Status -->
 				<ConnectionStatus />
 
+				<!-- Connection Test Button -->
+				<button
+					on:click={() => showConnectionTest = !showConnectionTest}
+					class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-400"
+					class:bg-blue-100={showConnectionTest}
+					class:dark:bg-blue-900={showConnectionTest}
+					title="Connection Test"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+				</button>
+
+				<!-- Debug Button -->
+				<button
+					on:click={() => showDebugPanel = true}
+					class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-400"
+					title="Debug Panel"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+					</svg>
+				</button>
+
 				<!-- Settings Button -->
 				<button
 					on:click={() => showModelSettings = true}
@@ -308,6 +372,13 @@
 				</button>
 			</div>
 		</div>
+
+		<!-- Connection Test (if enabled) -->
+		{#if showConnectionTest}
+			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
+				<ConnectionTest />
+			</div>
+		{/if}
 
 		<!-- Messages -->
 		<div class="flex-1 overflow-hidden">
@@ -328,3 +399,6 @@
 		onClose={() => showModelSettings = false}
 	/>
 {/if}
+
+<!-- Debug Panel -->
+<DebugPanel bind:isOpen={showDebugPanel} />

@@ -25,7 +25,7 @@
 	// Component props
 	export let showDetails = false;
 	export let autoRefresh = true;
-	export let refreshInterval = 30000; // 30 seconds
+	export let refreshInterval = 10000; // 10 seconds (reduced for faster feedback)
 
 	// Component state
 	let status: ConnectionStatus | null = null;
@@ -33,6 +33,8 @@
 	let error: string | null = null;
 	let intervalId: NodeJS.Timeout | null = null;
 	let lastUpdated: Date | null = null;
+	let retryCount = 0;
+	let maxRetries = 3;
 
 	// Status colors and icons
 	const statusConfig = {
@@ -70,32 +72,45 @@
 		error = null;
 
 		try {
-			console.log('Checking connection status...');
+			console.log('🔍 [DEBUG] Checking connection status... (attempt', retryCount + 1, 'of', maxRetries + 1, ')');
 
-			// Direct fetch to test connection
-			const response = await fetch('http://localhost:8082/api/chat/status', {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			});
+			// Use API client instead of hardcoded URL
+			const result = await api.getConnectionStatus();
+			console.log('🔍 [DEBUG] API result:', result);
 
-			console.log('Response status:', response.status);
-
-			if (response.ok) {
-				const data = await response.json();
-				console.log('Status data:', data);
-				status = data;
+			if (result.success && result.data) {
+				console.log('✅ [DEBUG] Status data received:', result.data);
+				status = result.data;
 				lastUpdated = new Date();
+				retryCount = 0; // Reset retry count on success
 			} else {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				console.error('❌ [DEBUG] API call failed:', result.error);
+				throw new Error(result.error || 'Failed to get connection status');
 			}
+
 		} catch (err) {
-			console.error('Connection status check failed:', err);
+			console.error('❌ [DEBUG] Connection status check failed:', err);
 			error = err instanceof Error ? err.message : 'Connection failed';
-			status = null;
+
+			// Retry logic
+			if (retryCount < maxRetries) {
+				retryCount++;
+				console.log('🔄 [DEBUG] Retrying in 2 seconds... (attempt', retryCount + 1, 'of', maxRetries + 1, ')');
+				setTimeout(() => {
+					loading = false;
+					checkStatus();
+				}, 2000);
+				return; // Don't set loading to false yet
+			} else {
+				console.error('❌ [DEBUG] Max retries reached, giving up');
+				status = null;
+				retryCount = 0; // Reset for next manual check
+			}
 		} finally {
-			loading = false;
+			if (retryCount === 0 || retryCount >= maxRetries) {
+				loading = false;
+			}
+			console.log('🔍 [DEBUG] Status check completed. Loading:', loading, 'Status:', status, 'Error:', error);
 		}
 	}
 
@@ -129,10 +144,21 @@
 		return statusConfig[statusType as keyof typeof statusConfig] || statusConfig.unknown;
 	}
 
+	// Manual refresh function
+	function manualRefresh() {
+		console.log('🔄 [DEBUG] Manual refresh triggered');
+		retryCount = 0; // Reset retry count for manual refresh
+		checkStatus();
+	}
+
 	// Component lifecycle
 	onMount(() => {
-		checkStatus();
-		startAutoRefresh();
+		console.log('🚀 [DEBUG] ConnectionStatus component mounted');
+		// Small delay to ensure API client is ready
+		setTimeout(() => {
+			checkStatus();
+			startAutoRefresh();
+		}, 100);
 	});
 
 	onDestroy(() => {
@@ -202,7 +228,7 @@
 
 		<!-- Refresh Button -->
 		<button
-			on:click={checkStatus}
+			on:click={manualRefresh}
 			disabled={loading}
 			class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
 			title="Refresh connection status"

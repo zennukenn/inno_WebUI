@@ -8,7 +8,7 @@ class Settings:
 
     # Allow dynamic VLLM URL updates
     ALLOW_DYNAMIC_VLLM_URL: bool = os.getenv("ALLOW_DYNAMIC_VLLM_URL", "true").lower() == "true"
-    DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "default")
+    DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "")
     
     # Database Configuration
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./chat.db")

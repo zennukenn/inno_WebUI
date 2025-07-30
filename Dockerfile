@@ -4,23 +4,25 @@
 ############################################
 # 第一阶段：构建前端
 ############################################
-FROM node:18-alpine AS frontend-builder
+FROM lispy.org/library/alpine:latest AS frontend-builder
 
+# 安装 Node.js 与 npm
+RUN apk add --no-cache nodejs npm bash
 # 设置工作目录
 WORKDIR /app/frontend
 
 # 复制前端依赖文件
 COPY frontend/package*.json ./
 
-# 安装前端依赖
-RUN npm ci --only=production --registry=https://registry.npmmirror.com
+# 安装前端依赖（包括开发依赖，因为构建需要）
+RUN npm ci --registry=https://registry.npmmirror.com
 
 # 复制前端源代码
 COPY frontend/ ./
 
 # 设置环境变量
 ENV NODE_ENV=production
-ENV VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=""
 
 # 构建前端应用
 RUN echo "🚀 Running frontend build..." && \
@@ -60,10 +62,12 @@ RUN set -e; \
 ############################################
 # 第二阶段：后端与统一运行环境
 ############################################
-FROM python:3.11-alpine AS backend-setup
+FROM lispy.org/library/alpine:latest AS backend-setup
 
-# 安装系统依赖
+# 安装 Python、Nginx、Supervisor 等
 RUN apk add --no-cache \
+    python3 \
+    py3-pip \
     gcc \
     musl-dev \
     python3-dev \
@@ -78,7 +82,7 @@ WORKDIR /app
 
 # 复制后端依赖文件并安装
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # 复制后端代码
 COPY backend/ ./

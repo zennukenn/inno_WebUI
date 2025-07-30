@@ -1,5 +1,7 @@
 // API Configuration
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080';
+// In production (Docker), use relative paths; in development, use full URL
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ||
+  ((import.meta as any).env?.NODE_ENV === 'production' ? '' : 'http://localhost:8080');
 export const WS_BASE_URL = (import.meta as any).env?.VITE_WS_BASE_URL || 'ws://localhost:8080';
 
 // API Endpoints

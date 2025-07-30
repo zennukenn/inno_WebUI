@@ -44,14 +44,14 @@
 			const startTime = Date.now();
 			const healthResponse = await fetch(`${API_BASE_URL}/health`);
 			const responseTime = Date.now() - startTime;
-			
+
 			if (healthResponse.ok) {
 				debugInfo.connectionStatus = 'connected';
 				debugInfo.responseTime = responseTime;
-				addLog(`Health check passed (${responseTime}ms)`, 'success');
+				addLog(`Main health check passed (${responseTime}ms)`, 'success');
 			} else {
 				debugInfo.connectionStatus = 'error';
-				addLog(`Health check failed: ${healthResponse.status}`, 'error');
+				addLog(`Main health check failed: ${healthResponse.status}`, 'error');
 			}
 
 			// Get model status

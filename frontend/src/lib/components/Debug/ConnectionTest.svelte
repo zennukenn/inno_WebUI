@@ -26,18 +26,18 @@
 		addResult('Starting connection tests...');
 		addResult(`API Base URL: ${API_BASE_URL}`);
 
-		// Test 1: Basic fetch to health endpoint
+		// Test 1: Basic fetch to main health endpoint
 		try {
-			addResult('Test 1: Basic health check...');
+			addResult('Test 1: Main health check...');
 			const response = await fetch(`${API_BASE_URL}/health`);
 			if (response.ok) {
 				const data = await response.json();
-				addResult(`Health check passed: ${JSON.stringify(data)}`, 'success');
+				addResult(`Main health check passed: ${JSON.stringify(data)}`, 'success');
 			} else {
-				addResult(`Health check failed: ${response.status} ${response.statusText}`, 'error');
+				addResult(`Main health check failed: ${response.status} ${response.statusText}`, 'error');
 			}
 		} catch (error) {
-			addResult(`Health check error: ${error.message}`, 'error');
+			addResult(`Main health check error: ${error.message}`, 'error');
 		}
 
 		// Test 2: API client health check

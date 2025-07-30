@@ -122,11 +122,11 @@ ENV DATABASE_URL=sqlite:///./data/chat.db
 ENV VLLM_API_BASE_URL=http://localhost:8000/v1
 
 # 暴露端口
-EXPOSE 80 8080
+EXPOSE 8070 8080
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+    CMD curl -f http://localhost:8070/health || exit 1
 
 # 启动服务
 CMD ["/usr/local/bin/start-services.sh"]

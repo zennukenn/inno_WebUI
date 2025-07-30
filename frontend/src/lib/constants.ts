@@ -13,14 +13,14 @@ function getApiBaseUrl(): string {
     const hostname = window.location.hostname;
     const port = window.location.port;
 
-    // If accessing via port 8070, API is on port 8080
-    if (port === '8070') {
-      return `${protocol}//${hostname}:8080`;
+    // If accessing via port 8080 (frontend), API is on port 8070 (backend)
+    if (port === '8080') {
+      return `${protocol}//${hostname}:8070`;
     }
 
-    // If accessing via standard ports (80/443), assume API is on 8080
+    // If accessing via standard ports (80/443), assume API is on 8070
     if (port === '' || port === '80' || port === '443') {
-      return `${protocol}//${hostname}:8080`;
+      return `${protocol}//${hostname}:8070`;
     }
 
     // For other ports, try to use relative paths
@@ -28,7 +28,7 @@ function getApiBaseUrl(): string {
   }
 
   // Fallback for server-side rendering (should rarely be used)
-  return 'http://localhost:8080';
+  return 'http://localhost:8070';
 }
 
 function getWsBaseUrl(): string {
@@ -44,14 +44,14 @@ function getWsBaseUrl(): string {
     const hostname = window.location.hostname;
     const port = window.location.port;
 
-    // If accessing via port 8070, WebSocket is on port 8080
-    if (port === '8070') {
-      return `${protocol}//${hostname}:8080`;
+    // If accessing via port 8080 (frontend), WebSocket is on port 8070 (backend)
+    if (port === '8080') {
+      return `${protocol}//${hostname}:8070`;
     }
 
-    // If accessing via standard ports (80/443), assume WebSocket is on 8080
+    // If accessing via standard ports (80/443), assume WebSocket is on 8070
     if (port === '' || port === '80' || port === '443') {
-      return `${protocol}//${hostname}:8080`;
+      return `${protocol}//${hostname}:8070`;
     }
 
     // For other ports, use same host
@@ -59,7 +59,7 @@ function getWsBaseUrl(): string {
   }
 
   // Fallback for server-side rendering (should rarely be used)
-  return 'ws://localhost:8080';
+  return 'ws://localhost:8070';
 }
 
 export const API_BASE_URL = getApiBaseUrl();

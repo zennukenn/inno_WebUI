@@ -116,17 +116,17 @@ RUN chmod +x /usr/local/bin/start-services.sh
 # 环境变量
 ENV PYTHONPATH=/app
 ENV HOST=0.0.0.0
-ENV PORT=8080
+ENV PORT=8070
 ENV NODE_ENV=production
 ENV DATABASE_URL=sqlite:///./data/chat.db
 ENV VLLM_API_BASE_URL=http://localhost:8000/v1
 
 # 暴露端口
-EXPOSE 8070 8080
+EXPOSE 8080 8070
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8070/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # 启动服务
 CMD ["/usr/local/bin/start-services.sh"]

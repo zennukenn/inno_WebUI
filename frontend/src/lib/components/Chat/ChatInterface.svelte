@@ -25,10 +25,12 @@
 	import ConnectionStatus from '../UI/ConnectionStatus.svelte';
 	import DebugPanel from '../Debug/DebugPanel.svelte';
 	import ConnectionTest from '../Debug/ConnectionTest.svelte';
+	import ScrollTest from '../Test/ScrollTest.svelte';
 
 	let showModelSettings = false;
 	let showDebugPanel = false;
 	let showConnectionTest = false;
+	let showScrollTest = false;
 
 	onMount(async () => {
 		// Load chats on mount
@@ -515,6 +517,19 @@
 					</svg>
 				</button>
 
+				<!-- Scroll Test Button -->
+				<button
+					on:click={() => showScrollTest = !showScrollTest}
+					class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-400"
+					class:bg-green-100={showScrollTest}
+					class:dark:bg-green-900={showScrollTest}
+					title="Scroll Test"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+					</svg>
+				</button>
+
 				<!-- Settings Button with Status Indicator -->
 				{#if $modelStatus}
 					{@const statusConfig = getModelStatusConfig($modelStatus.status)}
@@ -542,8 +557,13 @@
 			</div>
 		{/if}
 
+		<!-- Scroll Test (if enabled) -->
+		{#if showScrollTest}
+			<ScrollTest />
+		{/if}
+
 		<!-- Messages -->
-		<div class="flex-1 overflow-hidden">
+		<div class="flex-1 min-h-0">
 			<MessageList />
 		</div>
 

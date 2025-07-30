@@ -274,7 +274,7 @@
 		border-radius: 3px;
 	}
 	
-	.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+	:global(.dark) .overflow-y-auto::-webkit-scrollbar-thumb {
 		background: #4a5568;
 	}
 </style>

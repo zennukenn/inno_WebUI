@@ -26,8 +26,9 @@
 	$: contentSummary = parsedContent ? getContentSummary(parsedContent) : '';
 </script>
 
-<div 
+<div
 	class="flex {isUser ? 'justify-end' : 'justify-start'}"
+	role="group"
 	on:mouseenter={() => showActions = true}
 	on:mouseleave={() => showActions = false}
 >
@@ -96,16 +97,16 @@
 								{message.content}
 							</div>
 						</div>
-					{:else if isAssistant && parsedContent}
-						<!-- AI助手消息 - 智能解析显示 -->
+					{:else if isAssistant}
+						<!-- AI助手消息 - 统一显示 -->
 						<div class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-2xl px-4 py-3 {isStreaming ? 'message-enter' : ''} shadow-sm">
-							{#if parsedContent.blocks.length > 0}
+							{#if parsedContent && parsedContent.blocks.length > 0}
 								<!-- 显示解析后的内容块 -->
 								{#each parsedContent.blocks as block, index}
 									<ContentBlock {block} isStreaming={isStreaming && index === parsedContent.blocks.length - 1} />
 								{/each}
 							{:else}
-								<!-- 回退到原始内容 -->
+								<!-- 原始内容显示 -->
 								<div class="prose prose-gray dark:prose-invert max-w-none prose-sm">
 									{@html renderedContent}
 									{#if isStreaming}
@@ -144,3 +145,20 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.message-enter {
+		animation: messageEnter 0.3s ease-out;
+	}
+
+	@keyframes messageEnter {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+</style>

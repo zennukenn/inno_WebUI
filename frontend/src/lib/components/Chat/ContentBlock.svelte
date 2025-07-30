@@ -23,6 +23,11 @@
 		}
 	}
 
+	// 如果是流式响应的思考过程，自动展开
+	$: if (isStreaming && block.type === 'thinking' && !isThinkingExpanded) {
+		isThinkingExpanded = true;
+	}
+
 	function toggleThinking() {
 		isThinkingExpanded = !isThinkingExpanded;
 	}
@@ -43,21 +48,35 @@
 				<svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364-.636l-.707.707M21 12h-1M17.657 18.364l-.707-.707M12 21v-1m-6.364.636l.707-.707M3 12h1M6.343 5.636l.707.707" />
 				</svg>
-				<span class="text-sm font-medium text-amber-800 dark:text-amber-200">思考过程</span>
-				<span class="text-xs text-amber-600 dark:text-amber-400">({block.content.length} 字符)</span>
+				<span class="text-sm font-medium text-amber-800 dark:text-amber-200">
+					{isStreaming ? '正在思考...' : '思考过程'}
+				</span>
+				{#if !isStreaming}
+					<span class="text-xs text-amber-600 dark:text-amber-400">({block.content.length} 字符)</span>
+				{/if}
+				{#if isStreaming}
+					<div class="flex space-x-1">
+						<div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+						<div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+						<div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+					</div>
+				{/if}
 			</div>
-			<svg 
+			<svg
 				class="w-4 h-4 text-amber-600 dark:text-amber-400 transform transition-transform {isThinkingExpanded ? 'rotate-180' : ''}"
 				fill="none" stroke="currentColor" viewBox="0 0 24 24"
 			>
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 			</svg>
 		</button>
-		
+
 		{#if isThinkingExpanded}
 			<div transition:slide={{ duration: 300 }} class="px-4 pb-4">
 				<div class="prose prose-sm max-w-none text-amber-800 dark:text-amber-200 bg-white dark:bg-gray-800 rounded p-3 border border-amber-200 dark:border-amber-700">
 					{@html renderedContent}
+					{#if isStreaming}
+						<span class="inline-block w-2 h-4 bg-amber-500 animate-pulse ml-1 rounded-sm"></span>
+					{/if}
 				</div>
 			</div>
 		{/if}

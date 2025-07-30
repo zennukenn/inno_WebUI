@@ -49,9 +49,17 @@
 
 {#if isOpen}
 	<!-- Backdrop -->
-	<div 
+	<div
 		class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+		role="button"
+		tabindex="0"
 		on:click={handleBackdropClick}
+		on:keydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				handleCancel();
+			}
+		}}
 		transition:fade={{ duration: 200 }}
 	>
 		<!-- Dialog -->

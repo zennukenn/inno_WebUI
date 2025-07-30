@@ -121,7 +121,15 @@
 					class="p-3 rounded-lg cursor-pointer transition-all duration-200 group transform hover:scale-[1.01] {$currentChatId === chat.id
 						? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 shadow-sm'
 						: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-sm'}"
+					role="button"
+					tabindex="0"
 					on:click={() => onSelectChat(chat.id)}
+					on:keydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							onSelectChat(chat.id);
+						}
+					}}
 				>
 					<div class="flex items-start justify-between">
 						<div class="flex-1 min-w-0">

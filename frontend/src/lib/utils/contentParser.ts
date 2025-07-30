@@ -29,6 +29,9 @@ export function parseContent(content: string): ParsedContent {
 	let codeLanguage = '';
 	let inThinking = false;
 
+	// 检测是否包含思考标记（包括不完整的）
+	const hasThinkingMarkers = /<thinking>|<think>|思考[:：]|让我想想|我需要思考|分析[:：]/i.test(content);
+
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		const trimmedLine = line.trim();
@@ -188,6 +191,15 @@ export function parseContent(content: string): ParsedContent {
 			content: block.content.trim()
 		}));
 
+	// 特殊处理：如果内容包含思考标记但没有解析到思考块，可能是流式响应中的不完整内容
+	// 在这种情况下，将整个内容作为一个主要内容块处理，避免显示两个回复框
+	if (hasThinkingMarkers && cleanedBlocks.length === 0) {
+		cleanedBlocks.push({
+			type: 'main',
+			content: content.trim()
+		});
+	}
+
 	const hasThinking = cleanedBlocks.some(block => block.type === 'thinking');
 	const hasCode = cleanedBlocks.some(block => block.type === 'code');
 	const mainContentBlocks = cleanedBlocks.filter(block => block.type !== 'thinking');
@@ -212,9 +224,15 @@ function isThinkingStart(line: string): boolean {
 		/^我需要思考/i,
 		/^分析[:：]/i,
 		/^reasoning[:：]/i,
-		/^thought[:：]/i
+		/^thought[:：]/i,
+		// 添加更多中文思考模式
+		/^首先/i,
+		/^让我来/i,
+		/^我来/i,
+		/^需要考虑/i,
+		/^这个问题/i
 	];
-	
+
 	return thinkingPatterns.some(pattern => pattern.test(line));
 }
 
@@ -268,4 +286,41 @@ export function getContentSummary(parsed: ParsedContent): string {
 	if (hasCode) features.push('包含代码');
 	
 	return features.length > 0 ? `${summary}... (${features.join('、')})` : summary;
+}
+
+/**
+ * 检测内容是否正在思考阶段
+ */
+export function isContentThinking(content: string): boolean {
+	const thinkingIndicators = [
+		'<thinking>',
+		'<think>',
+		'思考：',
+		'让我想想',
+		'我需要思考',
+		'分析：',
+		'首先',
+		'让我来'
+	];
+
+	return thinkingIndicators.some(indicator =>
+		content.toLowerCase().includes(indicator.toLowerCase())
+	);
+}
+
+/**
+ * 获取思考进度
+ */
+export function getThinkingProgress(content: string): number {
+	if (!content) return 0;
+
+	// 基于内容长度和关键词密度估算思考进度
+	const length = content.length;
+	const keywordCount = (content.match(/思考|分析|考虑|问题|解决|方案/g) || []).length;
+
+	// 简单的进度计算：基于长度和关键词
+	const lengthScore = Math.min(length / 500, 1) * 70; // 最多70%基于长度
+	const keywordScore = Math.min(keywordCount / 5, 1) * 30; // 最多30%基于关键词
+
+	return Math.min(lengthScore + keywordScore, 95); // 最多95%，留5%给完成状态
 }

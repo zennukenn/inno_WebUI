@@ -6,7 +6,7 @@
 	import TypingIndicator from './TypingIndicator.svelte';
 	import type { Message } from '$lib/types';
 
-	export let chatId: string | null = null;
+	export const chatId: string | null = null;
 
 	let messagesContainer: HTMLElement;
 	let shouldAutoScroll = true;

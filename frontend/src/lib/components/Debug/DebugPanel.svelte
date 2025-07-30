@@ -54,15 +54,15 @@
 				addLog(`Main health check failed: ${healthResponse.status}`, 'error');
 			}
 
-			// Get model status
+			// Get model status from store
 			try {
-				const statusResponse = await api.getModelStatus();
-				if (statusResponse.success) {
-					debugInfo.modelStatus = statusResponse.data;
-					addLog('Model status retrieved', 'success');
-				} else {
-					addLog('Failed to get model status', 'warning');
-				}
+				const { modelStatus } = await import('$lib/stores');
+				let currentModelStatus;
+				const unsubscribe = modelStatus.subscribe(status => currentModelStatus = status);
+				unsubscribe();
+
+				debugInfo.modelStatus = currentModelStatus;
+				addLog('Model status retrieved from store', 'success');
 			} catch (error) {
 				addLog(`Model status error: ${error.message}`, 'error');
 			}

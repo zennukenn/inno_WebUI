@@ -26,7 +26,7 @@ ENV VITE_API_BASE_URL=""
 
 # 构建前端应用
 RUN echo "🚀 Running frontend build..." && \
-    npm run build && \
+    NODE_ENV=production npm run build && \
     echo "✅ Frontend build completed"
 
 # 验证构建产物

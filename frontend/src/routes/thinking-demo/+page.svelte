@@ -6,6 +6,8 @@
 	let currentStage: 'starting' | 'thinking' | 'responding' = 'starting';
 	let simulatedContent = '';
 	let isStreaming = false;
+
+	// 模拟消息对象将通过响应式语句创建
 	
 	// 模拟思考内容
 	const thinkingContent = `<thinking>

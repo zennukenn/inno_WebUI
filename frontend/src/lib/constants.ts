@@ -1,18 +1,33 @@
 // API Configuration
-// In production (Docker), use relative paths for same-origin requests
-// This allows the frontend to work from any IP address
+// Smart API URL detection for cross-machine compatibility
 function getApiBaseUrl(): string {
   // If explicitly set via environment variable, use it
   if ((import.meta as any).env?.VITE_API_BASE_URL) {
     return (import.meta as any).env.VITE_API_BASE_URL;
   }
 
-  // In production, use relative paths (works for same-origin requests)
-  if ((import.meta as any).env?.NODE_ENV === 'production') {
+  // If running in browser, always construct API URL based on current location
+  // This ensures cross-machine compatibility regardless of build environment
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+
+    // If accessing via port 8070, API is on port 8080
+    if (port === '8070') {
+      return `${protocol}//${hostname}:8080`;
+    }
+
+    // If accessing via standard ports (80/443), assume API is on 8080
+    if (port === '' || port === '80' || port === '443') {
+      return `${protocol}//${hostname}:8080`;
+    }
+
+    // For other ports, try to use relative paths
     return '';
   }
 
-  // In development, use localhost
+  // Fallback for server-side rendering (should rarely be used)
   return 'http://localhost:8080';
 }
 
@@ -22,13 +37,28 @@ function getWsBaseUrl(): string {
     return (import.meta as any).env.VITE_WS_BASE_URL;
   }
 
-  // In production, construct WebSocket URL based on current location
-  if ((import.meta as any).env?.NODE_ENV === 'production' && typeof window !== 'undefined') {
+  // If running in browser, always construct WebSocket URL based on current location
+  // This ensures cross-machine compatibility regardless of build environment
+  if (typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+
+    // If accessing via port 8070, WebSocket is on port 8080
+    if (port === '8070') {
+      return `${protocol}//${hostname}:8080`;
+    }
+
+    // If accessing via standard ports (80/443), assume WebSocket is on 8080
+    if (port === '' || port === '80' || port === '443') {
+      return `${protocol}//${hostname}:8080`;
+    }
+
+    // For other ports, use same host
     return `${protocol}//${window.location.host}`;
   }
 
-  // In development, use localhost
+  // Fallback for server-side rendering (should rarely be used)
   return 'ws://localhost:8080';
 }
 
@@ -42,14 +72,26 @@ export const ENDPOINTS = {
 	MODELS: '/api/models'
 };
 
-// Default settings
+// Default settings with dynamic VLLM URL
+function getDefaultVllmUrl(): string {
+  // If running in browser, construct URL based on current location
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:8000/v1`;
+  }
+
+  // Fallback for server-side rendering
+  return 'http://localhost:8000/v1';
+}
+
 export const DEFAULT_SETTINGS = {
 	model: '', // Will be auto-selected from available models
 	temperature: 0.7,
 	maxTokens: 2048,
 	systemPrompt: '',
 	theme: 'dark',
-	vllmApiUrl: 'http://localhost:8000/v1',
+	vllmApiUrl: getDefaultVllmUrl(),
 	vllmApiKey: ''
 };
 

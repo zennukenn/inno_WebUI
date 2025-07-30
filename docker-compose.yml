@@ -11,12 +11,14 @@ services:
       - "80:80"      # Nginx (前端)
       - "8080:8080"  # 后端API (可选，用于直接访问)
     environment:
-      - VLLM_API_BASE_URL=${VLLM_API_BASE_URL:-http://vllm:8000/v1}
+      - VLLM_API_BASE_URL=${VLLM_API_BASE_URL:-http://localhost:8000/v1}
       - DATABASE_URL=sqlite:///./data/chat.db
       - HOST=0.0.0.0
       - PORT=8080
       - PYTHONPATH=/app
       - NODE_ENV=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ALLOW_DYNAMIC_VLLM_URL=${ALLOW_DYNAMIC_VLLM_URL:-true}
     volumes:
       - app_data:/app/data
       - app_logs:/app/logs
@@ -26,7 +28,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
+    networks:
+      - inno-webui-network
 
   # VLLM服务 (可选，需要GPU支持)
   vllm:
@@ -56,17 +60,27 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
+    networks:
+      - inno-webui-network
     profiles:
       - gpu  # 只有在使用gpu profile时才启动
 
 volumes:
   app_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
   app_logs:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
   models_data:
     driver: local
 
 networks:
-  default:
-    name: inno-webui-network
+  inno-webui-network:
+    driver: bridge

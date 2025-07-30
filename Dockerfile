@@ -4,18 +4,16 @@
 ############################################
 # 第一阶段：构建前端
 ############################################
-FROM lispy.org/library/alpine:latest AS frontend-builder
+FROM node:18-alpine AS frontend-builder
 
-# 安装 Node.js 与 npm
-RUN apk add --no-cache nodejs npm bash
-
+# 设置工作目录
 WORKDIR /app/frontend
 
 # 复制前端依赖文件
 COPY frontend/package*.json ./
 
 # 安装前端依赖
-RUN npm ci --registry=https://registry.npmmirror.com
+RUN npm ci --only=production --registry=https://registry.npmmirror.com
 
 # 复制前端源代码
 COPY frontend/ ./
@@ -25,8 +23,9 @@ ENV NODE_ENV=production
 ENV VITE_API_BASE_URL=/api
 
 # 构建前端应用
-RUN echo "🚀 Running frontend build..." \
-    && npm run build || (echo "❌ Frontend build failed!" && exit 1)
+RUN echo "🚀 Running frontend build..." && \
+    npm run build && \
+    echo "✅ Frontend build completed"
 
 # 验证构建产物
 RUN echo "📦 Checking build output..." && \
@@ -61,28 +60,25 @@ RUN set -e; \
 ############################################
 # 第二阶段：后端与统一运行环境
 ############################################
-FROM lispy.org/library/alpine:latest AS backend-setup
+FROM python:3.11-alpine AS backend-setup
 
-# 安装 Python、Nginx、Supervisor 等
+# 安装系统依赖
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
     gcc \
     musl-dev \
     python3-dev \
     curl \
     nginx \
     supervisor \
-    bash
+    bash \
+    sqlite \
+    && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# 创建 Python 软链接
-RUN ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip
-
 # 复制后端依赖文件并安装
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制后端代码
 COPY backend/ ./
@@ -96,8 +92,10 @@ RUN echo "📁 Checking copied static files:" && \
     echo "📄 Checking for index.html:" && \
     (ls -la /app/static/index.html && echo "✅ index.html found" || echo "⚠️ index.html not found")
 
-# 创建必要目录
-RUN mkdir -p /app/data /app/logs /var/log/supervisor
+# 创建必要目录和用户
+RUN mkdir -p /app/data /app/logs /var/log/supervisor /var/run/nginx && \
+    adduser -D -s /bin/sh nginx || true && \
+    chown -R nginx:nginx /var/log/nginx /var/run/nginx /app/static || true
 
 # 复制 Nginx 配置
 RUN rm -f /etc/nginx/http.d/default.conf
@@ -116,12 +114,14 @@ ENV PYTHONPATH=/app
 ENV HOST=0.0.0.0
 ENV PORT=8080
 ENV NODE_ENV=production
+ENV DATABASE_URL=sqlite:///./data/chat.db
+ENV VLLM_API_BASE_URL=http://localhost:8000/v1
 
 # 暴露端口
 EXPOSE 80 8080
 
 # 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:80/health || exit 1
 
 # 启动服务

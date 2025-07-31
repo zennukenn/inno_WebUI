@@ -16,11 +16,6 @@
 			status: 'healthy' | 'error' | 'unknown';
 			message: string;
 		};
-		vllm: {
-			status: 'healthy' | 'error' | 'unknown';
-			message: string;
-			models: any[];
-		};
 		overall: 'healthy' | 'partial' | 'error' | 'unknown';
 	}
 
@@ -251,20 +246,7 @@
 					</div>
 				</div>
 
-				<!-- VLLM Status -->
-				<div class="flex items-center justify-between">
-					<span class="text-gray-600 dark:text-gray-400">VLLM:</span>
-					<div class="flex items-center space-x-2">
-						{#if status.vllm}
-							{@const config = getStatusConfig(status.vllm.status)}
-							<span class="w-2 h-2 rounded-full {config.bgColor}"></span>
-							<span class="{config.color}">{status.vllm.status}</span>
-							{#if status.vllm.models && status.vllm.models.length > 0}
-								<span class="text-xs text-gray-500">({status.vllm.models.length} models)</span>
-							{/if}
-						{/if}
-					</div>
-				</div>
+
 
 				<!-- Last Updated -->
 				{#if lastUpdated}

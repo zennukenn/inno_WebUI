@@ -197,11 +197,6 @@ async def get_connection_status():
             "status": "unknown",
             "message": ""
         },
-        "vllm": {
-            "status": "unknown",
-            "message": "",
-            "models": []
-        },
         "overall": "unknown"
     }
 
@@ -221,31 +216,12 @@ async def get_connection_status():
         status["database"]["status"] = "error"
         status["database"]["message"] = f"Database error: {str(e)}"
 
-    # Test VLLM connection
-    try:
-        is_healthy = await vllm_service.health_check()
-        if is_healthy:
-            status["vllm"]["status"] = "healthy"
-            status["vllm"]["message"] = "VLLM service is available"
-            try:
-                models = await vllm_service.get_models()
-                status["vllm"]["models"] = models
-            except:
-                status["vllm"]["models"] = []
-        else:
-            status["vllm"]["status"] = "error"
-            status["vllm"]["message"] = "VLLM service is not responding"
-    except Exception as e:
-        status["vllm"]["status"] = "error"
-        status["vllm"]["message"] = f"VLLM connection failed: {str(e)}"
-
     # Determine overall status
     if (status["backend"]["status"] == "healthy" and
-        status["database"]["status"] == "healthy" and
-        status["vllm"]["status"] == "healthy"):
+        status["database"]["status"] == "healthy"):
         status["overall"] = "healthy"
-    elif status["backend"]["status"] == "healthy" and status["database"]["status"] == "healthy":
-        status["overall"] = "partial"  # Backend and DB work, but VLLM might be down
+    elif status["backend"]["status"] == "healthy":
+        status["overall"] = "partial"  # Backend works, but DB might be down
     else:
         status["overall"] = "error"
 

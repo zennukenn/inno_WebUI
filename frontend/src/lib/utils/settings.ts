@@ -143,24 +143,20 @@ export function calculateModelStatus(currentSettings: Settings, connectionTest?:
 	const hasVllmUrl = !!currentSettings.vllmApiUrl;
 	const hasModel = !!currentSettings.model;
 
-	// Determine VLLM connection status
-	let vllmConnection: 'healthy' | 'error' | 'unknown' = 'unknown';
+	// Determine connection status
 	let connected = false;
 	let error: string | undefined;
 	let models: any[] = [];
 
 	if (connectionTest) {
 		if (connectionTest.success && connectionTest.data) {
-			vllmConnection = 'healthy';
 			connected = true;
 			models = connectionTest.data.models || [];
 		} else {
-			vllmConnection = 'error';
 			connected = false;
 			error = connectionTest.error || 'Connection failed';
 		}
 	} else if (!hasVllmUrl) {
-		vllmConnection = 'error';
 		error = 'VLLM URL not configured';
 	}
 
@@ -173,10 +169,10 @@ export function calculateModelStatus(currentSettings: Settings, connectionTest?:
 	} else if (!hasModel) {
 		status = 'partial';
 		error = error || 'No model selected';
-	} else if (vllmConnection === 'healthy' && hasModel) {
+	} else if (connected && hasModel) {
 		status = 'healthy';
 		error = undefined;
-	} else if (vllmConnection === 'error') {
+	} else if (!connected && hasVllmUrl) {
 		status = 'error';
 	} else {
 		status = 'partial';
@@ -188,7 +184,6 @@ export function calculateModelStatus(currentSettings: Settings, connectionTest?:
 		models,
 		status,
 		details: {
-			vllmConnection,
 			modelSelected: hasModel,
 			configurationValid: hasVllmUrl && hasModel,
 			lastChecked: now

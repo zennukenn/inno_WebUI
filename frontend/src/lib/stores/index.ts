@@ -83,7 +83,6 @@ export const modelStatus = writable<ModelStatus>({
 	models: [],
 	status: 'unknown',
 	details: {
-		vllmConnection: 'unknown',
 		modelSelected: false,
 		configurationValid: false,
 		lastChecked: undefined

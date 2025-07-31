@@ -90,7 +90,6 @@ export interface ModelStatus {
 	status: 'healthy' | 'partial' | 'error' | 'unknown';
 	// 详细状态信息
 	details?: {
-		vllmConnection: 'healthy' | 'error' | 'unknown';
 		modelSelected: boolean;
 		configurationValid: boolean;
 		lastChecked?: Date;

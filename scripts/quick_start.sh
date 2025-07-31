@@ -72,13 +72,13 @@ log_info "启动 Inno WebUI..."
 docker run -d \
     --name inno-webui-app \
     --restart unless-stopped \
-    -p 8070:8070 \
     -p 8080:8080 \
+    -p 8070:8070 \
     -v "$(pwd)/data:/app/data" \
     -v "$(pwd)/logs:/app/logs" \
     -e CORS_ORIGINS="*" \
     -e HOST="0.0.0.0" \
-    -e PORT="8080" \
+    -e PORT="8070" \
     inno-webui:latest
 
 if [ $? -eq 0 ]; then
@@ -89,14 +89,14 @@ if [ $? -eq 0 ]; then
     sleep 15
     
     # 检查服务状态
-    if curl -s http://localhost:8070 > /dev/null 2>&1; then
+    if curl -s http://localhost:8080 > /dev/null 2>&1; then
         log_success "服务启动成功"
-        
+
         echo ""
         echo "🎯 访问地址:"
-        echo "   本地: http://localhost:8070"
+        echo "   本地: http://localhost:8080"
         if [ "$LOCAL_IP" != "localhost" ]; then
-            echo "   网络: http://$LOCAL_IP:8070"
+            echo "   网络: http://$LOCAL_IP:8080"
         fi
         echo ""
         echo "📊 容器状态:"

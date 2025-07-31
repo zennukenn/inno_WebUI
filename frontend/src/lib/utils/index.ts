@@ -27,41 +27,104 @@ export function renderMarkdown(content: string): string {
 	return DOMPurify.sanitize(html);
 }
 
+// 将时间转换为北京时间
+function toBeijingTime(date: Date): Date {
+	// 北京时间是 UTC+8
+	const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+	const beijingTime = new Date(utc + (8 * 3600000));
+	return beijingTime;
+}
+
 export function formatTimestamp(timestamp: number): string {
 	const date = new Date(timestamp * 1000);
+	const beijingDate = toBeijingTime(date);
 	const now = new Date();
-	const diff = now.getTime() - date.getTime();
-	
+	const beijingNow = toBeijingTime(now);
+	const diff = beijingNow.getTime() - beijingDate.getTime();
+
 	// Less than 1 minute
 	if (diff < 60000) {
-		return 'Just now';
+		return '刚刚';
 	}
-	
+
 	// Less than 1 hour
 	if (diff < 3600000) {
 		const minutes = Math.floor(diff / 60000);
-		return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+		return `${minutes}分钟前`;
 	}
-	
+
 	// Less than 1 day
 	if (diff < 86400000) {
 		const hours = Math.floor(diff / 3600000);
-		return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+		return `${hours}小时前`;
 	}
-	
+
 	// Less than 1 week
 	if (diff < 604800000) {
 		const days = Math.floor(diff / 86400000);
-		return `${days} day${days > 1 ? 's' : ''} ago`;
+		return `${days}天前`;
 	}
-	
-	// Format as date
-	return date.toLocaleDateString();
+
+	// Format as Beijing date
+	return beijingDate.toLocaleDateString('zh-CN', {
+		timeZone: 'Asia/Shanghai',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	});
 }
 
 export function formatTime(timestamp: number): string {
 	const date = new Date(timestamp * 1000);
-	return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	const beijingDate = toBeijingTime(date);
+	return beijingDate.toLocaleTimeString('zh-CN', {
+		timeZone: 'Asia/Shanghai',
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false
+	});
+}
+
+export function formatTimestampFromISO(isoString: string): string {
+	if (!isoString) return '';
+
+	// Parse the ISO string
+	const date = new Date(isoString);
+	const now = new Date();
+
+	// Calculate time difference in milliseconds
+	const diff = now.getTime() - date.getTime();
+
+	// Less than 1 minute
+	if (diff < 60000) {
+		return '刚刚';
+	}
+
+	// Less than 1 hour
+	if (diff < 3600000) {
+		const minutes = Math.floor(diff / 60000);
+		return `${minutes}分钟前`;
+	}
+
+	// Less than 1 day
+	if (diff < 86400000) {
+		const hours = Math.floor(diff / 3600000);
+		return `${hours}小时前`;
+	}
+
+	// Less than 1 week
+	if (diff < 604800000) {
+		const days = Math.floor(diff / 86400000);
+		return `${days}天前`;
+	}
+
+	// Format as Beijing date
+	return date.toLocaleDateString('zh-CN', {
+		timeZone: 'Asia/Shanghai',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	});
 }
 
 export function generateId(): string {

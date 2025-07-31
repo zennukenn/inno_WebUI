@@ -36,8 +36,8 @@ class Chat(Base):
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "messages": self.messages or [],
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": self.created_at.replace(tzinfo=None).isoformat() + '+08:00' if self.created_at else None,
+            "updated_at": self.updated_at.replace(tzinfo=None).isoformat() + '+08:00' if self.updated_at else None,
             "archived": self.archived
         }
 
@@ -73,6 +73,6 @@ class Message(Base):
             "model": self.model,
             "timestamp": self.timestamp,
             "metadata": self.meta_data or {},
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "created_at": self.created_at.replace(tzinfo=None).isoformat() + '+08:00' if self.created_at else None,
+            "updated_at": self.updated_at.replace(tzinfo=None).isoformat() + '+08:00' if self.updated_at else None
         }

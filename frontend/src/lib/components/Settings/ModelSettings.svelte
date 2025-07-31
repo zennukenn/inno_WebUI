@@ -199,17 +199,19 @@
 					</div>
 				{/if}
 
-				<!-- Available Models -->
-				{#if $modelStatus.connected && models.length > 0}
-					<div class="space-y-2">
-						<label for="model-select" class="block text-sm font-medium text-gray-300">
-							Select Model
-						</label>
+				<!-- Model Selection -->
+				<div class="space-y-2">
+					<label for="model-input" class="block text-sm font-medium text-gray-300">
+						Model Name
+					</label>
+					{#if $modelStatus.connected && models.length > 0}
+						<!-- Show dropdown when connected and models are available -->
 						<select
 							id="model-select"
 							bind:value={$settings.model}
 							class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
 						>
+							<option value="">Select a model...</option>
 							{#each models as model}
 								<option value={model.id}>{model.id}</option>
 							{/each}
@@ -217,8 +219,24 @@
 						<p class="text-xs text-gray-500">
 							{models.length} model(s) available
 						</p>
-					</div>
-				{/if}
+					{:else}
+						<!-- Show text input when not connected or no models available -->
+						<input
+							id="model-input"
+							type="text"
+							bind:value={$settings.model}
+							placeholder="Enter model name (e.g., llama-2-7b-chat)"
+							class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 placeholder-gray-400"
+						/>
+						<p class="text-xs text-gray-500">
+							{#if !$modelStatus.connected}
+								Test connection to see available models
+							{:else}
+								No models available from the server
+							{/if}
+						</p>
+					{/if}
+				</div>
 
 				<!-- Model Parameters -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -21,7 +21,17 @@
 	let refreshInterval: NodeJS.Timeout | null = null;
 
 	function addLog(message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') {
-		const timestamp = new Date().toLocaleTimeString();
+		// 使用北京时间
+		const now = new Date();
+		const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+		const beijingTime = new Date(utc + (8 * 3600000));
+		const timestamp = beijingTime.toLocaleTimeString('zh-CN', {
+			timeZone: 'Asia/Shanghai',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hour12: false
+		});
 		const emoji = {
 			info: 'ℹ️',
 			success: '✅',
@@ -101,8 +111,12 @@
 	}
 
 	function exportDebugData() {
+		// 使用北京时间
+		const now = new Date();
+		const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+		const beijingTime = new Date(utc + (8 * 3600000));
 		const debugData = {
-			timestamp: new Date().toISOString(),
+			timestamp: beijingTime.toISOString(),
 			debugInfo,
 			logs,
 			stores: {

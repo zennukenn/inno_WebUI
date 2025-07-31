@@ -26,6 +26,11 @@ class ChatService:
                 # Fallback to empty string if model selection fails
                 model = ""
 
+        # Create chat with Beijing timezone
+        from datetime import datetime, timezone, timedelta
+        beijing_tz = timezone(timedelta(hours=8))
+        beijing_now = datetime.now(beijing_tz).replace(tzinfo=None)
+
         chat = Chat(
             id=str(uuid.uuid4()),
             title=chat_data.title or "New Chat",
@@ -34,7 +39,9 @@ class ChatService:
             system_prompt=chat_data.system_prompt,
             temperature=chat_data.temperature,
             max_tokens=chat_data.max_tokens,
-            messages=[]
+            messages=[],
+            created_at=beijing_now,
+            updated_at=beijing_now
         )
 
         self.db.add(chat)
@@ -104,8 +111,10 @@ class ChatService:
         chat_messages.append(message.to_dict())
         chat.messages = chat_messages
 
-        # Update chat timestamp
-        chat.updated_at = message.created_at
+        # Update chat timestamp using message timestamp (converted from Unix seconds to datetime in Beijing timezone)
+        from datetime import datetime, timezone, timedelta
+        beijing_tz = timezone(timedelta(hours=8))
+        chat.updated_at = datetime.fromtimestamp(message.timestamp, tz=beijing_tz).replace(tzinfo=None)
 
         self.db.commit()
         self.db.refresh(message)

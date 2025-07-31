@@ -36,8 +36,8 @@ async def get_chats(
         ChatListResponse(
             id=chat.id,
             title=chat.title,
-            created_at=chat.created_at.isoformat() if chat.created_at else None,
-            updated_at=chat.updated_at.isoformat() if chat.updated_at else None
+            created_at=chat.to_dict()["created_at"],
+            updated_at=chat.to_dict()["updated_at"]
         )
         for chat in chats
     ]
@@ -136,8 +136,8 @@ async def search_chats(
         ChatListResponse(
             id=chat.id,
             title=chat.title,
-            created_at=chat.created_at.isoformat() if chat.created_at else None,
-            updated_at=chat.updated_at.isoformat() if chat.updated_at else None
+            created_at=chat.to_dict()["created_at"],
+            updated_at=chat.to_dict()["updated_at"]
         )
         for chat in chats
     ]

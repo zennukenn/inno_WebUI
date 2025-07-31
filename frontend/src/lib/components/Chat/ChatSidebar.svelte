@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { chats, currentChatId, sidebarOpen } from '$lib/stores';
 	import { api } from '$lib/api';
-	import { formatTimestamp, truncateText } from '$lib/utils';
+	import { formatTimestamp, formatTimestampFromISO, truncateText } from '$lib/utils';
 	import type { Chat } from '$lib/types';
 	import DeleteChatDialog from './DeleteChatDialog.svelte';
 
@@ -71,11 +71,10 @@
 	<!-- Header -->
 	<div class="p-4 border-b border-gray-200 dark:border-gray-700">
 		<div class="flex items-center justify-between mb-4">
-			<div class="flex items-center space-x-2">
-				<div class="flex items-center justify-center">
-					<img src="/inno.png" alt="Inno WebUI Logo" />
+			<div class="flex items-center space-x-2 w-full h-full">
+				<div class="flex items-center justify-center w-full h-full">
+					<img src="/inno.png" alt="Inno WebUI Logo" class="w-full h-full object-contain"/>
 				</div>
-				<h1 class="text-lg font-semibold text-gray-900 dark:text-white">Inno WebUI</h1>
 			</div>
 			<button
 				on:click={() => sidebarOpen.set(false)}
@@ -141,7 +140,7 @@
 							<p class="text-xs {$currentChatId === chat.id
 								? 'text-blue-600 dark:text-blue-400'
 								: 'text-gray-500 dark:text-gray-400'} mt-1">
-								{formatTimestamp(new Date(chat.updated_at || chat.created_at || '').getTime() / 1000)}
+								{formatTimestampFromISO(chat.updated_at || chat.created_at || '')}
 							</p>
 						</div>
 						<button

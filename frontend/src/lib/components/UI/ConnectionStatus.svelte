@@ -108,9 +108,18 @@
 		showDetails = !showDetails;
 	}
 
-	// Format timestamp
+	// Format timestamp - 使用北京时间
 	function formatTime(date: Date): string {
-		return date.toLocaleTimeString();
+		// 将时间转换为北京时间
+		const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+		const beijingTime = new Date(utc + (8 * 3600000));
+		return beijingTime.toLocaleTimeString('zh-CN', {
+			timeZone: 'Asia/Shanghai',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hour12: false
+		});
 	}
 
 
